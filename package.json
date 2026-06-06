@@ -1,0 +1,30 @@
+{
+  "name": "wasmfirst-electron-browserapiextended",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev:electron": "bun run build:wasm && vite",
+    "build:wasm": "wasm-pack build rust-wasm --target web",
+    "build": "npm run build:wasm && tsc && vite build && electron-builder",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "electron": "^30.0.1",
+    "electron-builder": "^24.13.3",
+    "happy-dom": "^20.10.1",
+    "jsdom": "^29.1.1",
+    "typescript": "^6.0.3",
+    "vite": "^8.0.16",
+    "vite-plugin-electron": "^1.0.4",
+    "vite-plugin-electron-renderer": "^1.0.0",
+    "vitest": "^4.1.8"
+  },
+  "main": "dist-electron/main.js",
+  "dependencies": {
+    "@tailwindcss/vite": "^4.3.0",
+    "shiki": "^4.2.0",
+    "tailwindcss": "^4.3.0"
+  }
+}
