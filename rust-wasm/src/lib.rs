@@ -12,6 +12,8 @@ thread_local! {
     static COMPONENT_STATE: RefCell<HashMap<u32, ComponentState>> = RefCell::new(HashMap::new());
 }
 
+use serde::{Serialize, Deserialize};
+
 struct ComponentState {
     values: HashMap<String, JsValue>,
     changed: HashMap<String, JsValue>,
@@ -34,6 +36,15 @@ fn escape_html(s: &str) -> String {
         .replace('>', "&gt;")
         .replace('"', "&quot;")
         .replace('\'', "&#039;")
+}
+
+const DEBUG: bool = true;
+
+fn log_phase(phase: &str, data: &JsValue) {
+    if DEBUG {
+        let msg = format!("[BAEX DEBUG RUST][{}]:", phase);
+        web_sys::console::log_2(&JsValue::from_str(&msg), data);
+    }
 }
 
 fn detect_binding(s: &str) -> Option<(&'static str, &str)> {
@@ -293,6 +304,8 @@ pub fn on_signal_change(key: String, callback: js_sys::Function) {
 
 // ── Template Processing (core framework logic) ──────────────────────
 
+// @RULE: All template processing in Rust MUST ensure safe HTML escaping by default.
+// @ANOMALY: The current `detect_binding` function is too simple and may fail on complex attribute strings.
 #[wasm_bindgen]
 pub fn process_template(strings: JsValue, values: JsValue) -> JsValue {
     use js_sys::{Array, Object, Reflect};
@@ -389,6 +402,7 @@ pub fn process_template(strings: JsValue, values: JsValue) -> JsValue {
     let result = Object::new();
     Reflect::set(&result, &"html".into(), &output.into()).unwrap();
     Reflect::set(&result, &"bindings".into(), &result_bindings).unwrap();
+    log_phase("PROCESS_TEMPLATE", &result.clone().into());
     result.into()
 }
 

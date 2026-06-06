@@ -1,30 +1,35 @@
 import { wasm } from './wasm';
-import { getTrackingElement } from './tracker';
+import { tracker } from './dependency-tracker';
 
 type SignalSubscriber = (value: unknown) => void;
-
 
 export class Signal<T = unknown> {
   private _key: string;
   private _value: T;
+  private _initialized = false;
 
   constructor(key: string, initial: T) {
     this._key = key;
     this._value = initial;
-    wasm.createSignal(key, initial);
+  }
+
+  private _init() {
+    if (!this._initialized) {
+      wasm.createSignal(this._key, this._value);
+      this._initialized = true;
+    }
   }
 
   get value(): T {
-    const tracker = getTrackingElement();
-    if (tracker && typeof tracker.requestUpdate === 'function') {
-      this.subscribe(() => tracker.requestUpdate(true));
-    }
-    console.log(`[Signal] get value for ${this._key}:`, this._value);
+    this._init();
+    tracker.track(this._key, () => {
+      console.log(`[Signal] Dependency triggered for ${this._key}`);
+    });
     return this._value;
   }
 
   set value(v: T) {
-    console.log(`[Signal] set value for ${this._key}:`, v);
+    this._init();
     this._value = v;
     wasm.setSignal(this._key, v);
   }
@@ -47,6 +52,34 @@ export class Signal<T = unknown> {
 
   get key(): string {
     return this._key;
+  }
+}
+
+export class Computed<T = unknown> extends Signal<T> {
+  private _fn: () => T;
+
+  constructor(fn: () => T) {
+    super(null as any, fn());
+    this._fn = fn;
+  }
+
+  get value(): T {
+    tracker.begin();
+    const result = this._fn();
+    const deps = tracker.end();
+
+    // Subscribe dependencies to re-trigger computation
+    deps.forEach(depKey => {
+      const dep = getSignal(depKey);
+      if (dep) {
+        dep.subscribe(() => {
+            // Use the base class setter
+            (this as any).value = this._fn();
+        });
+      }
+    });
+
+    return result;
   }
 }
 

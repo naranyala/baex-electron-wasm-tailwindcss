@@ -148,28 +148,24 @@ export class AppElement extends BaexElement {
                 </div>
               </div>
             `
-            : view === 'wasm'
-              ? html`
-                <div class="text-[1.1rem] font-bold text-amber-400 mt-6 mb-3 pb-2 border-b border-white/10">Non-framework Primitives</div>
-                <p class="text-sm text-white/50 mb-4">
-                  Raw functions exposed on <code class="text-[0.8rem] bg-white/10 px-1 py-0.5 rounded">window.*</code>
-                  by the Rust/WASM <code class="text-[0.8rem] bg-white/10 px-1 py-0.5 rounded">web-core</code> module
-                </p>
-                ${WASM_ITEMS.map((item, i) => this._renderAccordionItem(item, i))}
-              `
-              : view === 'framework'
-                ? html`
-                  <div class="text-[1.1rem] font-bold text-blue-400 mt-6 mb-3 pb-2 border-b border-white/10">Framework Primitives</div>
-                  <p class="text-sm text-white/50 mb-4">BAEX (Browser API Extended) framework built on top of the WASM primitives</p>
-                  ${FRAMEWORK_ITEMS.map((item, i) => this._renderAccordionItem(item, i + WASM_ITEMS.length))}
-                `
-                : html`
-                  <div class="text-[1.1rem] font-bold text-white/80 mt-6 mb-3 pb-2 border-b border-white/10">${view}</div>
-                  <p class="text-sm text-white/50 mb-4">This is a dynamically opened tab from the Home grid.</p>
-                `}
+            : html`
+                <div class="text-[1.1rem] font-bold text-${this._getViewColor(view)}-400 mt-6 mb-3 pb-2 border-b border-white/10 capitalize">${view}</div>
+                <p class="text-sm text-white/50 mb-4">View: ${view}</p>
+                ${view === 'wasm'
+                  ? WASM_ITEMS.map((item, i) => this._renderAccordionItem(item, i))
+                  : view === 'framework'
+                    ? FRAMEWORK_ITEMS.map((item, i) => this._renderAccordionItem(item, i + WASM_ITEMS.length))
+                    : html`<p class="text-white/40">Content for ${view} not implemented.</p>`
+                }
+              `}
         </div>
       </div>
     `;
+  }
+
+  private _getViewColor(view: string): string {
+    const card = HOME_CARDS.find(c => c.id === view);
+    return card ? card.color : 'white';
   }
 }
 

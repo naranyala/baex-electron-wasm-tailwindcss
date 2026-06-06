@@ -96,7 +96,16 @@ export class BaexElement extends HTMLElement {
 
   static get observedAttributes(): string[] {
     const props = (this as typeof BaexElement).properties;
-    return wasm.resolveObservedAttributes(props);
+    // Check if wasm module is loaded. 
+    // In many cases, observedAttributes is accessed during class definition,
+    // before ensureWasmReady() can complete.
+    try {
+        return wasm.resolveObservedAttributes(props);
+    } catch (e) {
+        // Fallback: return empty array, or derive from props directly if possible.
+        // For now, returning empty array to prevent crashing.
+        return [];
+    }
   }
 
   requestUpdate(force = false): void {

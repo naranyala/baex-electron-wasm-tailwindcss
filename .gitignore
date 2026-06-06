@@ -2,6 +2,7 @@
 thirdparty/
 release/
 
+dist-electron/
 rust-wasm/target/
 
 # Logs

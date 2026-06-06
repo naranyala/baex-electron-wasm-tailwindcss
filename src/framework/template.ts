@@ -1,4 +1,5 @@
 import { wasm } from './wasm';
+import { logPhase } from './debug';
 
 export interface EventBinding {
   marker: string;
@@ -41,6 +42,8 @@ function isSignalLike(v: unknown): v is { value: unknown } {
   return typeof v === 'object' && v !== null && 'value' in v;
 }
 
+// @RULE: The `html` function MUST maintain the order of bindings relative to the DOM structure.
+// @ANOMALY: Nested bindings currently rely on string concatenation, which is fragile and slow.
 export function html(
   strings: TemplateStringsArray,
   ...values: unknown[]
@@ -85,7 +88,9 @@ export function html(
     return b as Binding;
   });
 
-  return { html: raw.html, bindings: [...bindings, ...nestedBindings] };
+  const result: TemplateResult = { html: raw.html, bindings: [...bindings, ...nestedBindings] };
+  logPhase('TEMPLATE_RESULT', result);
+  return result;
 }
 
 export function css(
