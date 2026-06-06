@@ -1,45 +1,16 @@
 import type { Binding, TemplateResult } from './template';
 import { wasm } from './wasm';
-import { setTrackingElement } from './tracker';
+import { tracker } from './dependency-tracker';
+import { getSignal } from './signals';
+import type { PropertyDeclaration, PropertyValues } from './types';
+import { 
+  resolveAttributeName, 
+  normalizePatches, 
+  deserializeProperty, 
+  serializeProperty 
+} from './utils';
 
 
-export interface PropertyDeclaration {
-  type?:
-    | StringConstructor
-    | NumberConstructor
-    | BooleanConstructor
-    | ObjectConstructor
-    | ArrayConstructor;
-  attribute?: string | boolean;
-  reflect?: boolean;
-  hasChanged?(value: unknown, oldValue: unknown): boolean;
-}
-
-export type PropertyValues = Record<string, unknown>;
-
-function getTypeName(type?: unknown): string | undefined {
-  if (type === String) return 'string';
-  if (type === Number) return 'number';
-  if (type === Boolean) return 'boolean';
-  if (type === Object) return 'object';
-  if (type === Array) return 'array';
-  return undefined;
-}
-
-function resolveAttributeName(
-  propName: string,
-  decl: PropertyDeclaration,
-): string | null {
-  if (decl.attribute === false) return null;
-  if (decl.attribute === true || decl.attribute === undefined)
-    return propName.toLowerCase();
-  return decl.attribute;
-}
-
-export interface PropertyPatch {
-  propName: string;
-  value: unknown;
-}
 
 export class BaexElement extends HTMLElement {
   static properties: Record<string, PropertyDeclaration> = {};
@@ -130,38 +101,30 @@ export class BaexElement extends HTMLElement {
     this._pendingUpdate = false;
     const currentForce = this._forceUpdate;
     this._forceUpdate = false;
-
+ 
     const rawPatches = wasm.get_component_changed_properties(this._cid);
     wasm.clear_component_changed_properties(this._cid);
-
-    const patches = this._normalizePatches(rawPatches);
-
+ 
+    const patches = normalizePatches(rawPatches);
+ 
     if (this._isFirstRender) {
-      setTrackingElement(this);
+      tracker.begin();
       this._renderInitial();
-      setTrackingElement(null);
+      const deps = tracker.end();
+      deps.forEach(key => {
+        const sig = getSignal(key);
+        sig?.subscribe(() => this.requestUpdate());
+      });
       this._isFirstRender = false;
     } else if (patches.length > 0 || currentForce) {
-      setTrackingElement(this);
       this._renderInitial();
-      setTrackingElement(null);
     }
-
+ 
     this.onUpdate?.(Object.fromEntries(patches.map((p) => [p.propName, p.value])));
     for (const cb of this._updateCallbacks) {
       cb();
     }
     this._updateCallbacks = [];
-  }
-
-  private _normalizePatches(raw: unknown): PropertyPatch[] {
-    if (Array.isArray(raw)) return raw as PropertyPatch[];
-    if (raw && typeof raw === 'object') {
-      return Object.entries(raw as Record<string, unknown>).map(
-        ([propName, value]) => ({ propName, value }),
-      );
-    }
-    return [];
   }
 
   private _renderInitial(): void {
@@ -206,9 +169,6 @@ export class BaexElement extends HTMLElement {
     const ctor = this.constructor as typeof BaexElement;
     const props = ctor.properties;
 
-    void this._serialize;
-    void this._deserialize;
-
     for (const [name, decl] of Object.entries(props)) {
       Object.defineProperty(this, name, {
         get() {
@@ -225,7 +185,7 @@ export class BaexElement extends HTMLElement {
           if (changed) {
             const attrName = resolveAttributeName(name, decl);
             if (decl.reflect && attrName) {
-              const str = this._serialize(value, decl.type);
+               const str = serializeProperty(value, decl.type);
               if (str === null) {
                 this.removeAttribute(attrName);
               } else {
@@ -246,19 +206,9 @@ export class BaexElement extends HTMLElement {
     decl: PropertyDeclaration,
     value: string | null,
   ): void {
-    const converted = this._deserialize(value, decl.type);
+    const converted = deserializeProperty(value, decl.type);
     wasm.update_component_property(this._cid, propName, converted);
     this.requestUpdate();
-  }
-
-  private _deserialize(value: string | null, type?: unknown): unknown {
-    return wasm.deserializeProperty(value, getTypeName(type));
-  }
-
-  private _serialize(value: unknown, type?: unknown): string | null {
-    const result = wasm.serializeProperty(value, getTypeName(type));
-    if (result === null || result === undefined) return null;
-    return String(result);
   }
 
   whenUpdate(cb: () => void): void {

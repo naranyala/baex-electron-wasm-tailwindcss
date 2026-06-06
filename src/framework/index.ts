@@ -1,9 +1,9 @@
 import { BaexElement } from './baex-element';
-
-export type { PropertyDeclaration, PropertyValues } from './baex-element';
+ 
+export type { PropertyDeclaration, PropertyValues } from './types';
 export { BaexElement, property, state } from './baex-element';
 export type { SignalSubscriber } from './signals';
-export { createSignal, getSignal, Signal } from './signals';
+export { createSignal, getSignal, Signal, Computed } from './signals';
 export type { Binding, TemplateResult } from './template';
 export { css, html } from './template';
 export { Raw } from './template';

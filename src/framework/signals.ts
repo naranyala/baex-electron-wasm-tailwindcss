@@ -32,6 +32,7 @@ export class Signal<T = unknown> {
     this._init();
     this._value = v;
     wasm.setSignal(this._key, v);
+    tracker.notify(this._key);
   }
 
   peek(): T {

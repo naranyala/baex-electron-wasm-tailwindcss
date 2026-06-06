@@ -4,9 +4,11 @@ import { openTab, viewSignal } from '../state/router.js';
 import { WASM_ITEMS, FRAMEWORK_ITEMS, type ApiItem } from '../state/api-items.js';
 import { BaexCodeBlock } from './code-block.js';
 import { BaexNav } from './nav.js';
+import { BaexStatusBar } from './status-bar.js';
 
 defineComponent('baex-code-block', BaexCodeBlock);
 defineComponent('baex-nav', BaexNav);
+defineComponent('baex-status-bar', BaexStatusBar);
 
 const HOME_CARDS: Array<{ id: string; name: string; desc: string; color: string }> = [
   { id: 'wasm',      name: 'Wasm Primitives',       desc: 'Raw functions exposed by the Rust/WASM web-core module.',     color: 'amber'  },
@@ -110,58 +112,59 @@ export class AppElement extends BaexElement {
     `;
   }
 
-  render() {
-    const view = this.view;
-    return html`
-      <div class="flex flex-col items-center min-h-screen px-4 py-8">
-        <div class="w-full max-w-2xl mt-24">
-          <h1 class="text-3xl font-bold text-center mb-1">Wasm Browser API Extended</h1>
-          <p class="text-[1.1rem] text-center text-white/60 mt-0 mb-6">BAEX framework × Rust/Wasm</p>
-
-          ${view === 'home'
-            ? html`
-              <div class="mt-6">
-                <div class="relative mb-6">
-                  <input
-                    data-search
-                    type="text"
-                    placeholder="Search features..."
-                    class="w-full px-4 py-3 pl-10 rounded-xl bg-white/[0.03] border border-white/[0.08] text-white placeholder-white/40 focus:outline-none focus:border-blue-500/50 focus:bg-white/[0.05] transition-all"
-                  />
-                  <span class="absolute left-3 top-1/2 -translate-y-1/2 text-white/40">⌕</span>
-                </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  ${HOME_CARDS
-                    .filter((card) => this._fuzzyMatch(card.name + card.desc, this.searchQuery))
-                    .map((card) => html`
-                      <div
-                        @click=${() => this._openTab(card.id, card.name)}
-                        class="p-4 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] hover:border-white/20 cursor-pointer transition-all duration-200"
-                      >
-                        <div class="flex items-center gap-2 mb-2">
-                          <span class="w-2 h-2 rounded-full bg-${card.color}-400"></span>
-                          <h3 class="font-semibold text-sm">${card.name}</h3>
+    render() {
+      const view = this.view;
+      return html`
+        <div class="flex flex-col items-center min-h-screen px-4 py-8">
+          <div class="w-full max-w-2xl mt-24">
+            <h1 class="text-3xl font-bold text-center mb-1">Wasm Browser API Extended</h1>
+            <p class="text-[1.1rem] text-center text-white/60 mt-0 mb-6">BAEX framework × Rust/Wasm</p>
+  
+            ${view === 'home'
+              ? html`
+                <div class="mt-6">
+                  <div class="relative mb-6">
+                    <input
+                      data-search
+                      type="text"
+                      placeholder="Search features..."
+                      class="w-full px-4 py-3 pl-10 rounded-xl bg-white/[0.03] border border-white/[0.08] text-white placeholder-white/40 focus:outline-none focus:border-blue-500/50 focus:bg-white/[0.05] transition-all"
+                    />
+                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-white/40">⌕</span>
+                  </div>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    ${HOME_CARDS
+                      .filter((card) => this._fuzzyMatch(card.name + card.desc, this.searchQuery))
+                      .map((card) => html`
+                        <div
+                          @click=${() => this._openTab(card.id, card.name)}
+                          class="p-4 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] hover:border-white/20 cursor-pointer transition-all duration-200"
+                        >
+                          <div class="flex items-center gap-2 mb-2">
+                            <span class="w-2 h-2 rounded-full bg-${card.color}-400"></span>
+                            <h3 class="font-semibold text-sm">${card.name}</h3>
+                          </div>
+                          <p class="text-xs text-white/50 leading-relaxed">${card.desc}</p>
                         </div>
-                        <p class="text-xs text-white/50 leading-relaxed">${card.desc}</p>
-                      </div>
-                    `)}
+                      `)}
+                  </div>
                 </div>
-              </div>
-            `
-            : html`
-                <div class="text-[1.1rem] font-bold text-${this._getViewColor(view)}-400 mt-6 mb-3 pb-2 border-b border-white/10 capitalize">${view}</div>
-                <p class="text-sm text-white/50 mb-4">View: ${view}</p>
-                ${view === 'wasm'
-                  ? WASM_ITEMS.map((item, i) => this._renderAccordionItem(item, i))
-                  : view === 'framework'
-                    ? FRAMEWORK_ITEMS.map((item, i) => this._renderAccordionItem(item, i + WASM_ITEMS.length))
-                    : html`<p class="text-white/40">Content for ${view} not implemented.</p>`
-                }
-              `}
+              `
+              : html`
+                  <div class="text-[1.1rem] font-bold text-${this._getViewColor(view)}-400 mt-6 mb-3 pb-2 border-b border-white/10 capitalize">${view}</div>
+                  <p class="text-sm text-white/50 mb-4">View: ${view}</p>
+                  ${view === 'wasm'
+                    ? WASM_ITEMS.map((item, i) => this._renderAccordionItem(item, i))
+                    : view === 'framework'
+                      ? FRAMEWORK_ITEMS.map((item, i) => this._renderAccordionItem(item, i + WASM_ITEMS.length))
+                      : html`<p class="text-white/40">Content for ${view} not implemented.</p>`
+                  }
+                `}
+          </div>
+          <baex-status-bar></baex-status-bar>
         </div>
-      </div>
-    `;
-  }
+      `;
+    }
 
   private _getViewColor(view: string): string {
     const card = HOME_CARDS.find(c => c.id === view);

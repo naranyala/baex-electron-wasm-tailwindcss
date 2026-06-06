@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { setupWasm } from './setup.js';
+import { setupWasm } from '../framework/setup.js';
 import { BaexElement, defineComponent, html } from '../framework/index.js';
 import { Signal } from '../framework/signals.js';
 

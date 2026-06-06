@@ -2,13 +2,15 @@
   "name": "baex-framework",
   "private": true,
   "version": "0.0.0",
+  "description": "browser api extended with wasm for electron with tailwindcss",
+  "author": "naranyala",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "dev:electron": "bun run build:wasm && vite",
-    "build:wasm": "wasm-pack build rust-wasm --target web",
-    "build": "npm run build:wasm && tsc && vite build && electron-builder",
-    "preview": "vite preview"
+    "dev": "bun x vite",
+    "dev:electron": "bun run build:wasm && bun x vite",
+    "build:wasm": "wasm-pack build rust-wasm --target web && wasm-pack build rust-utils/math-utils --target web && wasm-pack build rust-utils/string-utils --target web",
+    "build": "bun run build:wasm && bun x tsc && bun x vite build && bun x electron-builder",
+    "preview": "bun x vite preview"
   },
   "devDependencies": {
     "electron": "^30.0.1",

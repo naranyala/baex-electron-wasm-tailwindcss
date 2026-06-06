@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { BaexElement } from '../framework/baex-element.js';
 import { createSignal, html } from '../framework/index.js';
-import { testWasm, setupWasm } from './setup.js';
+import { testWasm, setupWasm } from '../framework/setup.js';
 
 describe('Framework Integration (Real WASM)', () => {
   beforeAll(async () => {
