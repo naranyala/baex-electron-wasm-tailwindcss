@@ -8,11 +8,13 @@
   "scripts": {
     "dev": "bun x vite",
     "dev:electron": "bun run build:wasm && bun x vite",
+    "build:native": "cd rust-native/db-core && cargo build --release && cp target/release/libdb_core.so index.node",
     "build:wasm": "wasm-pack build rust-wasm --target web && wasm-pack build rust-utils/math-utils --target web && wasm-pack build rust-utils/string-utils --target web",
-    "build": "bun run build:wasm && bun x tsc && bun x vite build && bun x electron-builder",
+    "build": "bun run build:native && bun run build:wasm && bun x tsc && bun x vite build && bun x electron-builder",
     "preview": "bun x vite preview"
   },
   "devDependencies": {
+    "@types/leaflet": "^1.9.21",
     "electron": "^30.0.1",
     "electron-builder": "^24.13.3",
     "happy-dom": "^20.10.1",
@@ -26,8 +28,12 @@
   "main": "dist-electron/main.js",
   "dependencies": {
     "@tailwindcss/vite": "^4.3.0",
+    "leaflet": "^1.9.4",
     "shiki": "^4.2.0",
     "tailwindcss": "^4.3.0",
+    "vega": "^6.2.0",
+    "vega-embed": "^7.1.0",
+    "vega-lite": "^6.4.3",
     "zod": "^4.4.3"
   }
 }

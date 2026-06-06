@@ -1,5 +1,6 @@
 import { wasm } from './wasm';
 import { logPhase } from './debug';
+import { DOMInstruction, BindingInstruction, OptimizedIR } from './ir';
 
 export interface EventBinding {
   marker: string;
@@ -22,7 +23,7 @@ export interface BoolBinding {
 export type Binding = EventBinding | PropertyBinding | BoolBinding;
 
 export interface TemplateResult {
-  html: string;
+  root: DOMInstruction;
   bindings: Binding[];
 }
 
@@ -42,8 +43,57 @@ function isSignalLike(v: unknown): v is { value: unknown } {
   return typeof v === 'object' && v !== null && 'value' in v;
 }
 
-// @RULE: The `html` function MUST maintain the order of bindings relative to the DOM structure.
-// @ANOMALY: Nested bindings currently rely on string concatenation, which is fragile and slow.
+function compileToIR(htmlString: string, bindings: ProcessedBinding[]): OptimizedIR {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(htmlString, 'text/html');
+  const body = doc.body;
+
+  const walk = (node: Node): DOMInstruction => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      return { type: 'text', content: node.textContent || '' };
+    }
+
+    if (node.nodeType === Node.ELEMENT_NODE) {
+      const el = node as HTMLElement;
+      const tagName = el.tagName.toLowerCase();
+      
+      // Find bindings associated with this element's marker
+      const marker = el.getAttribute('data-baex');
+      const elementBindings: BindingInstruction[] = [];
+      if (marker) {
+        const found = bindings.find(b => b.marker === marker);
+        if (found) {
+          elementBindings.push({
+            type: found.type,
+            name: found.eventName || found.propName || found.attrName || '',
+            valueIdx: found.valueIdx ?? -1,
+            marker: found.marker
+          });
+        }
+      }
+
+      return {
+        type: 'element',
+        tag: tagName,
+        children: Array.from(el.childNodes).map(walk),
+        bindings: elementBindings
+      };
+    }
+
+    return { type: 'text', content: '' };
+  };
+
+  return {
+    root: walk(body),
+    bindings: bindings.map(b => ({
+      type: b.type,
+      name: b.eventName || b.propName || b.attrName || '',
+      valueIdx: b.valueIdx ?? -1,
+      marker: b.marker
+    }))
+  };
+}
+
 export function html(
   strings: TemplateStringsArray,
   ...values: unknown[]
@@ -63,10 +113,12 @@ export function html(
       }
       return Raw(htmlContent);
     }
-    if (v && typeof v === 'object' && 'html' in v && 'bindings' in v) {
+    if (v && typeof v === 'object' && 'root' in v && 'bindings' in v) {
       const tr = v as TemplateResult;
       nestedBindings.push(...tr.bindings);
-      return Raw(tr.html);
+      // Since we are now using a DOM-Node IR, we can't just return a string for nested templates.
+      // We'll return a special marker that the builder will handle.
+      return Raw(`<!--baex-nested-root-->`);
     }
     return v;
   };
@@ -74,21 +126,33 @@ export function html(
   const processedValues = values.map(processValue);
   const raw = wasm.processTemplate(strings, processedValues);
 
-  const bindings: Binding[] = raw.bindings.map((b: ProcessedBinding) => {
-    if (b.valueIdx !== undefined) {
+  const ir = compileToIR(raw.html, raw.bindings);
+
+  const resolvedBindings: Binding[] = ir.bindings.map((b: BindingInstruction) => {
+    if (b.valueIdx !== -1) {
       const rawValue = processedValues[b.valueIdx];
       if (b.type === 'property' && isSignalLike(rawValue)) {
-        (b as unknown as Record<string, unknown>).value = (
-          rawValue as { value: unknown }
-        ).value;
+        return {
+          marker: b.marker,
+          type: 'property',
+          propName: b.name,
+          value: (rawValue as { value: unknown }).value
+        };
       } else {
-        (b as unknown as Record<string, unknown>).value = rawValue;
+        return {
+          marker: b.marker,
+          type: b.type === 'event' ? 'event' : b.type === 'bool' ? 'bool' : 'property',
+          eventName: b.type === 'event' ? b.name : undefined,
+          propName: b.type === 'property' ? b.name : undefined,
+          attrName: b.type === 'bool' ? b.name : undefined,
+          value: rawValue
+        };
       }
     }
-    return b as Binding;
+    return { marker: b.marker, type: 'property', propName: b.name, value: undefined } as any;
   });
 
-  const result: TemplateResult = { html: raw.html, bindings: [...bindings, ...nestedBindings] };
+  const result: TemplateResult = { root: ir.root, bindings: [...resolvedBindings, ...nestedBindings] };
   logPhase('TEMPLATE_RESULT', result);
   return result;
 }

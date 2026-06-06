@@ -1,42 +1,38 @@
-# Baex Framework Development TODOs
+# BAEX Framework Evolution: From Template-String to Reactive IR
 
-## Core Framework (JS/TS)
+# BAEX Framework Evolution: From Template-String to Reactive IR
 
-- [ ] Surgical Rendering
-  - [ ] Move from innerHTML to a patch-based update system.
-  - [ ] Implement _applyPatches(patches) to perform precise DOM modifications.
-  - [ ] Ensure DOM state (focus, selection) is preserved across updates.
-- [ ] DX Improvements
-  - [ ] Implement @property and @state decorators.
-  - [ ] Improve TemplateResult type definitions for better IDE support.
-  - [ ] Implement whenUpdate as a first-class lifecycle method.
+## 🟢 Phase 1: Architectural Redefinition (IR Layer)
+- [ ] **Redefine IR Types**: Move from `OptimizedIR { html, bindings }` to an instruction-based `DOMInstruction` set in `src/framework/ir.ts`.
+- [ ] **Implement IR Compiler**: Create a JS-side compiler that transforms the WASM-generated HTML string and bindings into a `DOMInstruction` tree using `DOMParser`.
+- [ ] **Define Patch IR**: Create a specific IR type for targeted updates (`PropertyPatch`, `AttributePatch`, `TextPatch`).
 
-## WASM Engine (Rust)
+## 🟡 Phase 2: Rendering Engine Overhaul
+- [ ] **Eliminate `innerHTML`**: Rewrite `BaexElement._renderInitial` to build the DOM tree recursively using `document.createElement` based on the `DOMInstruction` tree.
+- [ ] **Remove Marker-based Lookups**: Replace `querySelector('[data-baex="..."]')` with direct node references stored during the build phase.
+- [ ]: **Direct Binding Application**: Attach event listeners and properties during the node creation process.
 
-- [ ] Diffing Algorithm
-  - [ ] Implement a virtual-diffing engine that returns PropertyPatch sets.
-  - [ ] Optimize the process_template function for repeated executions.
-- [ ] State Management
-  - [ ] Implement a more robust ComponentState to handle nested components.
-  - [ ] Enhance serializeProperty / deserializeProperty for complex JS objects.
-- [ ] Signal Graph
-  - [ ] Implement a dependency graph to allow one signal to derive from another.
+## 🔴 Phase 3: Fine-Grained Reactivity (The "Patch" System)
+- [ ] **Implement Dependency-to-Node Mapping**: Create a registry that maps specific signals to the exact DOM nodes they affect.
+- [ ] **Rewrite `_performUpdate`**: Replace the full re-render cycle with a patching cycle that only updates changed nodes.
+- [ ] **Optimize Memory**: Ensure that the node map is cleaned up during `disconnectedCallback` to prevent memory leaks.
 
-## Quality Assurance
+## 🧪 Verification
+- [ ] **Regression Testing**: Ensure all existing components still render correctly.
+- [ ] **Performance Benchmark**: Compare `innerHTML` render time vs. Instruction-based render time.
+- [ ] **Leak Detection**: Verify that signal subscriptions are correctly disposed of.
 
-- [ ] Testing Suite
-  - [ ] Create integration-complex.test.ts with deeply nested component trees.
-  - [ ] Add performance benchmarks for render cycles (TBT/LCP).
-  - [ ] Test edge cases for template interpolations (nulls, undefineds, empty arrays).
-- [ ] Stability
-  - [ ] Resolve NotSupportedError issues in jsdom.
-  - [ ] Implement a strict mode for property declarations.
+## 🟡 Phase 2: Rendering Engine Overhaul
+- [ ] **Eliminate `innerHTML`**: Rewrite `BaexElement._renderInitial` to build the DOM tree using `document.createElement` based on the IR instructions.
+- [ ] **Remove Marker-based Lookups**: Replace `querySelector('[data-baex="..."]')` with direct node references stored during the build phase.
+- [ ] **Implement Direct Binding**: Bind events and properties during node creation rather than in a second pass.
 
-## Tooling & Distribution
+## 🔴 Phase 3: Fine-Grained Reactivity (The "Patch" System)
+- [ ] **Implement Dependency-to-Node Mapping**: Create a registry that maps specific signals to the exact DOM nodes they affect.
+- [ ] **Rewrite `_performUpdate`**: Replace the full re-render cycle with a patching cycle that only updates changed nodes.
+- [ ] **Optimize Memory**: Ensure that the node map is cleaned up during `disconnectedCallback` to prevent memory leaks.
 
-- [ ] Build Pipeline
-  - [ ] Optimize WASM binary size using wasm-opt.
-  - [ ] Implement a development server with Hot Module Replacement (HMR) for components.
-- [ ] Documentation
-  - [ ] Write comprehensive API guides for BaexElement.
-  - [ ] Create Getting Started tutorials.
+## 🧪 Verification
+- [ ] **Regression Testing**: Ensure all existing components still render correctly.
+- [ ] **Performance Benchmark**: Compare `innerHTML` render time vs. Instruction-based render time.
+- [ ] **Leak Detection**: Verify that signal subscriptions are correctly disposed of.

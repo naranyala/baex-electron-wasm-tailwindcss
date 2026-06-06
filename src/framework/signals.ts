@@ -7,6 +7,7 @@ export class Signal<T = unknown> {
   private _key: string;
   private _value: T;
   private _initialized = false;
+  private _subscribers: Set<SignalSubscriber> = new Set();
 
   constructor(key: string, initial: T) {
     this._key = key;
@@ -22,9 +23,7 @@ export class Signal<T = unknown> {
 
   get value(): T {
     this._init();
-    tracker.track(this._key, () => {
-      console.log(`[Signal] Dependency triggered for ${this._key}`);
-    });
+    tracker.track(this._key, () => {});
     return this._value;
   }
 
@@ -32,6 +31,11 @@ export class Signal<T = unknown> {
     this._init();
     this._value = v;
     wasm.setSignal(this._key, v);
+    
+    // Notify JS subscribers
+    this._subscribers.forEach(cb => cb(v));
+    
+    // Notify the global tracker
     tracker.notify(this._key);
   }
 
@@ -40,14 +44,15 @@ export class Signal<T = unknown> {
   }
 
   subscribe(cb: SignalSubscriber): () => void {
-    let subscribed = true;
+    this._subscribers.add(cb);
+    
     const wasmCb = (val: unknown) => {
-      console.log('[Signal] Callback triggered for', this._key);
-      if (subscribed) cb(val);
+      cb(val);
     };
-    wasm.onSignalChange(this._key, wasmCb as unknown as (...args: unknown[]) => unknown);
+    wasm.onSignalChange(this._key, wasmCb as any);
+
     return () => {
-      subscribed = false;
+      this._subscribers.delete(cb);
     };
   }
 
@@ -69,13 +74,11 @@ export class Computed<T = unknown> extends Signal<T> {
     const result = this._fn();
     const deps = tracker.end();
 
-    // Subscribe dependencies to re-trigger computation
     deps.forEach(depKey => {
       const dep = getSignal(depKey);
       if (dep) {
         dep.subscribe(() => {
-            // Use the base class setter
-            (this as any).value = this._fn();
+            this.value = this._fn();
         });
       }
     });

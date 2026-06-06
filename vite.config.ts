@@ -26,4 +26,11 @@ export default defineConfig({
         : {},
     }),
   ],
+  build: {
+    rollupOptions: {
+      external: [
+        '../rust-native/db-core/index.node',
+      ],
+    },
+  },
 })

@@ -18,7 +18,11 @@ contextBridge.exposeInMainWorld('ipcRenderer', {
     const [channel, ...omit] = args
     return ipcRenderer.invoke(channel, ...omit)
   },
+})
 
-  // You can expose other APTs you need here.
-  // ...
+contextBridge.exposeInMainWorld('db', {
+  init: (path: string) => ipcRenderer.invoke('db:init', path),
+  seed: () => ipcRenderer.invoke('db:seed'),
+  execute: (sql: string, params: any[]) => ipcRenderer.invoke('db:execute', { sql, params }),
+  query: (sql: string, params: any[]) => ipcRenderer.invoke('db:query', { sql, params }),
 })
