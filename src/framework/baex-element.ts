@@ -9,26 +9,29 @@ import {
   deserializeProperty, 
   serializeProperty 
 } from './utils';
-
-
-
+import { buildDOM, RenderContext } from './renderer';
+import type { Callback } from './dependency-tracker';
+ 
+ 
+ 
 export class BaexElement extends HTMLElement {
   static properties: Record<string, PropertyDeclaration> = {};
-
+ 
   private _cid: number = 0;
   private _pendingUpdate = false;
   private _forceUpdate = false;
   private _updateCallbacks: Array<() => void> = [];
-  private _subscriptions = new Map<string, () => void>();
+  private _subscriptions = new Map<string | number, () => void>();
+  private _cleanupStack: Callback[] = [];
   private _bindingMap = new Map<string, Array<{ node: Node; binding: Binding }>>();
-
+ 
   constructor() {
     super();
     this._cid = wasm.register_component();
     this._syncInitialProperties();
     this._defineClassProperties();
   }
-
+ 
   private _syncInitialProperties(): void {
     const props = (this.constructor as typeof BaexElement).properties;
     for (const name of Object.keys(props)) {
@@ -38,17 +41,19 @@ export class BaexElement extends HTMLElement {
       }
     }
   }
-
+ 
   connectedCallback(): void {
     this.requestUpdate();
     this.onConnected?.();
   }
-
+ 
   disconnectedCallback(): void {
     wasm.remove_component(this._cid);
+    this._disposeSubscriptions();
+    tracker.cleanupStack(this._cleanupStack);
     this.onDisconnected?.();
   }
-
+ 
   attributeChangedCallback(
     name: string,
     old: string | null,
@@ -64,7 +69,7 @@ export class BaexElement extends HTMLElement {
       }
     }
   }
-
+ 
   static get observedAttributes(): string[] {
     const props = (this as typeof BaexElement).properties;
     // Check if wasm module is loaded. 
@@ -78,7 +83,7 @@ export class BaexElement extends HTMLElement {
         return [];
     }
   }
-
+ 
   requestUpdate(force = false): void {
     if (force) {
       this._forceUpdate = true;
@@ -88,16 +93,24 @@ export class BaexElement extends HTMLElement {
       queueMicrotask(() => this._performUpdate());
     }
   }
-
+ 
   protected render(): TemplateResult {
     throw new Error('render() must be implemented by subclass');
   }
-
+ 
   protected onConnected?(): void;
   protected onDisconnected?(): void;
   protected onUpdate?(changed: PropertyValues): void;
-
+  
+  private _disposeSubscriptions(): void {
+    // Only unsubscribe from deps that were specifically for this component
+    this._subscriptions.forEach(unsubscribe => unsubscribe());
+    this._subscriptions.clear();
+    this._bindingMap.clear();
+  }
+  
   private _performUpdate(): void {
+ 
     this._pendingUpdate = false;
     const currentForce = this._forceUpdate;
     this._forceUpdate = false;
@@ -108,7 +121,9 @@ export class BaexElement extends HTMLElement {
     const patches = normalizePatches(rawPatches);
   
     // Always track dependencies during render to handle conditional dependencies
-    tracker.begin();
+    tracker.begin(() => {
+      this.requestUpdate();
+    }, this._cleanupStack);
     
     if (currentForce) {
       this._renderInitial();
@@ -143,7 +158,7 @@ export class BaexElement extends HTMLElement {
     // Subscribe to new deps
     newDeps.forEach(key => {
       if (!this._subscriptions.has(key)) {
-        const sig = getSignal(key);
+        const sig = getSignal(key as string);
         const unsubscribe = sig?.subscribe(() => this.requestUpdate());
         if (unsubscribe) {
           this._subscriptions.set(key, unsubscribe);
@@ -157,7 +172,7 @@ export class BaexElement extends HTMLElement {
     }
     this._updateCallbacks = [];
   }
-
+ 
   private _findMarkerForProperty(propName: string): string | null {
     for (const [marker, targets] of this._bindingMap.entries()) {
       if (targets.some(t => t.binding.type === 'property' && t.binding.propName === propName)) {
@@ -166,58 +181,24 @@ export class BaexElement extends HTMLElement {
     }
     return null;
   }
-
-
+ 
+ 
   private _renderInitial(): void {
     const result = this.render();
     if (!result) return;
-
+ 
     this.innerHTML = '';
-    const rootNode = this._buildDOM(result.root, result.bindings);
+    
+    const ctx: RenderContext = {
+      bindingMap: this._bindingMap,
+      applyBinding: this._applyBindingToNode.bind(this),
+      applyPatch: this._applyPatch.bind(this)
+    };
+    
+    const rootNode = buildDOM(result.root, result.bindings, ctx);
     this.appendChild(rootNode);
   }
-
-  private _buildDOM(instruction: any, allBindings: Binding[]): Node {
-    if (instruction.type === 'text') {
-      return document.createTextNode(instruction.content);
-    }
-
-    if (instruction.type === 'fragment') {
-      const fragment = document.createDocumentFragment();
-      for (const child of instruction.children) {
-        fragment.appendChild(this._buildDOM(child, allBindings));
-      }
-      return fragment;
-    }
-
-    if (instruction.type === 'element') {
-      const el = document.createElement(instruction.tag);
-      
-      if (instruction.bindings) {
-        for (const bInst of instruction.bindings) {
-          const binding = allBindings.find(b => b.marker === bInst.marker);
-          if (binding) {
-            this._applyBindingToNode(el, binding);
-            
-            // Register for fine-grained updates
-            const marker = bInst.marker;
-            if (!this._bindingMap.has(marker)) {
-              this._bindingMap.set(marker, []);
-            }
-            this._bindingMap.get(marker)!.push({ node: el, binding });
-          }
-        }
-      }
-
-      for (const child of instruction.children) {
-        el.appendChild(this._buildDOM(child, allBindings));
-      }
-      return el;
-    }
-
-    return document.createTextNode('');
-  }
-
+ 
   private _applyBindingToNode(el: HTMLElement, b: Binding): void {
     if (b.type === 'event') {
       el.addEventListener(b.eventName, b.value);
@@ -231,11 +212,11 @@ export class BaexElement extends HTMLElement {
       }
     }
   }
-
+ 
   private _applyPatch(marker: string, newValue: unknown): void {
     const targets = this._bindingMap.get(marker);
     if (!targets) return;
-
+ 
     for (const { node, binding } of targets) {
       const el = node as HTMLElement;
       if (binding.type === 'property') {
@@ -250,19 +231,19 @@ export class BaexElement extends HTMLElement {
       // Event bindings are generally static
     }
   }
-
-  private _initializeNodeMap(bindings: Binding[]): void {
-    // Deprecated in favor of _buildDOM direct application
-  }
-
-  private _applyBindings(bindings: Binding[]): void {
-    // Deprecated in favor of _buildDOM direct application
-  }
-
+ 
+  // Deprecated in favor of _buildDOM direct application
+  // private _initializeNodeMap(bindings: Binding[]): void {
+  // }
+  
+  // Deprecated in favor of _buildDOM direct application
+  // private _applyBindings(bindings: Binding[]): void {
+  // }
+ 
   private _defineClassProperties(): void {
     const ctor = this.constructor as typeof BaexElement;
     const props = ctor.properties;
-
+ 
     for (const [name, decl] of Object.entries(props)) {
       Object.defineProperty(this, name, {
         get() {
@@ -280,11 +261,11 @@ export class BaexElement extends HTMLElement {
             const attrName = resolveAttributeName(name, decl);
             if (decl.reflect && attrName) {
                const str = serializeProperty(value, decl.type);
-              if (str === null) {
-                this.removeAttribute(attrName);
-              } else {
-                this.setAttribute(attrName, str);
-              }
+               if (str === null) {
+                 this.removeAttribute(attrName);
+               } else {
+                 this.setAttribute(attrName, str);
+               }
             }
             this.requestUpdate();
           }
@@ -294,7 +275,7 @@ export class BaexElement extends HTMLElement {
       });
     }
   }
-
+ 
   private _setPropertyFromAttribute(
     propName: string,
     decl: PropertyDeclaration,
@@ -304,7 +285,7 @@ export class BaexElement extends HTMLElement {
     wasm.update_component_property(this._cid, propName, converted);
     this.requestUpdate();
   }
-
+ 
   whenUpdate(cb: () => void): void {
     if (!this._pendingUpdate) {
       cb();
@@ -313,7 +294,7 @@ export class BaexElement extends HTMLElement {
     }
   }
 }
-
+ 
 export function property(decl?: PropertyDeclaration): PropertyDecorator {
   return (target: object, key: string | symbol) => {
     if (!target) return;
@@ -321,14 +302,14 @@ export function property(decl?: PropertyDeclaration): PropertyDecorator {
       | typeof BaexElement
       | undefined;
     if (!ctor || typeof ctor !== 'function') return;
-
+ 
     if (!ctor.properties) {
       ctor.properties = {};
     }
     ctor.properties[key as string] = decl ?? {};
   };
 }
-
+ 
 export function state(): PropertyDecorator {
   return property({ attribute: false });
 }

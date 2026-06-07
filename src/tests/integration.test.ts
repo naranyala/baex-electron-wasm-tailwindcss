@@ -36,10 +36,10 @@ describe('Framework Integration (Real WASM)', () => {
     const s = createSignal('int_sig', 100);
 
     expect(s.value).toBe(100);
-    expect(testWasm.getSignal('int_sig')).toBe(100);
+    expect(testWasm.getSignal(testWasm.getOrCreateSignalId('int_sig'))).toBe(100);
 
     s.value = 200;
-    expect(testWasm.getSignal('int_sig')).toBe(200);
+    expect(testWasm.getSignal(testWasm.getOrCreateSignalId('int_sig'))).toBe(200);
   });
 
   it('resolves observed attributes via Rust helper', async () => {

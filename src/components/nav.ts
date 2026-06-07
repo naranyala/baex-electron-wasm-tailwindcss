@@ -1,5 +1,5 @@
 import { BaexElement, defineComponent, html } from '../framework/index.js';
-import { tabsSignal, viewSignal, navigateTo } from '../state/router.js';
+import { getTabsSignal, getViewSignal, navigateTo } from '../state/router.js';
 
 interface Tab {
   id: string;
@@ -19,14 +19,14 @@ export class BaexNav extends BaexElement {
   private _unsubscribeTabs: (() => void) | null = null;
 
   onConnected() {
-    this.view = viewSignal.value;
-    this.tabs = tabsSignal.value as Tab[];
+    this.view = getViewSignal().value;
+    this.tabs = getTabsSignal().value as Tab[];
 
-    this._unsubscribeView = viewSignal.subscribe((val) => {
+    this._unsubscribeView = getViewSignal().subscribe((val: any) => {
       this.view = val as string;
       this.requestUpdate();
     });
-    this._unsubscribeTabs = tabsSignal.subscribe((val) => {
+    this._unsubscribeTabs = getTabsSignal().subscribe((val: any) => {
       this.tabs = val as Tab[];
       this.requestUpdate();
     });

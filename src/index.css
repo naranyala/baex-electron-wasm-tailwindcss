@@ -7,6 +7,9 @@ body {
   background-image: linear-gradient(to bottom, #020917, #101725);
 }
 
+body:not(.loaded) { overflow: hidden; }
+body.loaded #preloader { opacity: 0; visibility: hidden; pointer-events: none; }
+
 .accordion-body {
   display: grid;
   grid-template-rows: 0fr;
@@ -20,4 +23,11 @@ body {
 baex-code-block pre {
   background-color: transparent !important;
   margin: 0;
+}
+
+.home-card {
+  transition: border-color 0.2s;
+}
+.home-card:hover {
+  border-color: var(--hc) !important;
 }

@@ -1,10 +1,6 @@
-import { app, BrowserWindow, ipcMain } from 'electron'
+import { app, BrowserWindow } from 'electron'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
-import { createRequire } from 'node:module'
-
-const require = createRequire(import.meta.url)
-const dbCore = require('../rust-native/db-core/index.node')
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -26,28 +22,13 @@ export const RENDERER_DIST = path.join(process.env.APP_ROOT, 'dist')
 
 process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, 'public') : RENDERER_DIST
 
-// SQLite IPC Handlers
-ipcMain.handle('db:init', async (_, path: string) => {
-  return dbCore.initDb(path);
-});
-
-ipcMain.handle('db:seed', async () => {
-  return dbCore.seedDb();
-});
-
-ipcMain.handle('db:execute', async (_, { sql, params }) => {
-  return dbCore.execute(sql, params);
-});
-
-ipcMain.handle('db:query', async (_, { sql, params }) => {
-  const result = dbCore.query(sql, params);
-  return JSON.parse(result);
-});
-
 let win: BrowserWindow | null
 
 function createWindow() {
+  const projectDir = path.basename(process.env.APP_ROOT)
+
   win = new BrowserWindow({
+    title: projectDir,
     icon: path.join(process.env.VITE_PUBLIC, 'electron-vite.svg'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs'),

@@ -1,38 +1,31 @@
-# BAEX Framework Evolution: From Template-String to Reactive IR
+# BAEX Framework Evolution
 
-# BAEX Framework Evolution: From Template-String to Reactive IR
+## ✅ Completed
+- [x] **Architectural Redefinition**: Instruction-based `DOMInstruction` set.
+- [x] **IR Compiler**: JS-side compiler using `DOMParser`.
+- [x] **Rendering Engine**: Recursive DOM building via `document.createElement` (replacing root `innerHTML`).
+- [x] **Reactive Primitives**: 
+  - [x] `createEffect` for side effects.
+  - [x] `createStore` for nested reactive state.
+  - [x] `Show` for conditional rendering.
+  - [x] `For` for list rendering.
+- [x] **Context API**: Dependency injection for components.
 
-## 🟢 Phase 1: Architectural Redefinition (IR Layer)
-- [ ] **Redefine IR Types**: Move from `OptimizedIR { html, bindings }` to an instruction-based `DOMInstruction` set in `src/framework/ir.ts`.
-- [ ] **Implement IR Compiler**: Create a JS-side compiler that transforms the WASM-generated HTML string and bindings into a `DOMInstruction` tree using `DOMParser`.
-- [ ] **Define Patch IR**: Create a specific IR type for targeted updates (`PropertyPatch`, `AttributePatch`, `TextPatch`).
+## 🚀 Performance-Focused Roadmap (Current Priority)
 
-## 🟡 Phase 2: Rendering Engine Overhaul
-- [ ] **Eliminate `innerHTML`**: Rewrite `BaexElement._renderInitial` to build the DOM tree recursively using `document.createElement` based on the `DOMInstruction` tree.
-- [ ] **Remove Marker-based Lookups**: Replace `querySelector('[data-baex="..."]')` with direct node references stored during the build phase.
-- [ ]: **Direct Binding Application**: Attach event listeners and properties during the node creation process.
+### 🛠️ Level 1: Stability & Memory (High Priority)
+- [ ] **Lifecycle Cleanup**: Implement an `onCleanup` mechanism to dispose of signal subscriptions and effects when components unmount.
+- [ ] **Binary Signal IDs**: Transition from string-based signal keys to numeric IDs to reduce JS-WASM bridge overhead.
 
-## 🔴 Phase 3: Fine-Grained Reactivity (The "Patch" System)
-- [ ] **Implement Dependency-to-Node Mapping**: Create a registry that maps specific signals to the exact DOM nodes they affect.
-- [ ] **Rewrite `_performUpdate`**: Replace the full re-render cycle with a patching cycle that only updates changed nodes.
-- [ ] **Optimize Memory**: Ensure that the node map is cleaned up during `disconnectedCallback` to prevent memory leaks.
+### ⚡ Level 2: Rendering Optimization (Medium Priority)
+- [ ] **Keyed Reconciliation**: Replace `innerHTML = ''` in `Show` and `For` primitives with a diffing algorithm to prevent DOM thrashing.
+- [ ] **Fragment-based Patching**: Optimize partial updates to only touch the minimum required DOM nodes.
 
-## 🧪 Verification
-- [ ] **Regression Testing**: Ensure all existing components still render correctly.
-- [ ] **Performance Benchmark**: Compare `innerHTML` render time vs. Instruction-based render time.
-- [ ] **Leak Detection**: Verify that signal subscriptions are correctly disposed of.
-
-## 🟡 Phase 2: Rendering Engine Overhaul
-- [ ] **Eliminate `innerHTML`**: Rewrite `BaexElement._renderInitial` to build the DOM tree using `document.createElement` based on the IR instructions.
-- [ ] **Remove Marker-based Lookups**: Replace `querySelector('[data-baex="..."]')` with direct node references stored during the build phase.
-- [ ] **Implement Direct Binding**: Bind events and properties during node creation rather than in a second pass.
-
-## 🔴 Phase 3: Fine-Grained Reactivity (The "Patch" System)
-- [ ] **Implement Dependency-to-Node Mapping**: Create a registry that maps specific signals to the exact DOM nodes they affect.
-- [ ] **Rewrite `_performUpdate`**: Replace the full re-render cycle with a patching cycle that only updates changed nodes.
-- [ ] **Optimize Memory**: Ensure that the node map is cleaned up during `disconnectedCallback` to prevent memory leaks.
+### 🏗️ Level 3: Build-time Transformation (Long Term)
+- [ ] **Vite Compilation Plugin**: Move Rust-WASM template parsing and IR generation from runtime to build-time.
+- [ ] **AOT Template Functions**: Compile templates directly into optimized JS functions that instantiate DOM nodes.
 
 ## 🧪 Verification
-- [ ] **Regression Testing**: Ensure all existing components still render correctly.
-- [ ] **Performance Benchmark**: Compare `innerHTML` render time vs. Instruction-based render time.
-- [ ] **Leak Detection**: Verify that signal subscriptions are correctly disposed of.
+- [ ] **Regression Testing**: Comprehensive suite for all primitives.
+- [ ] **Performance Benchmark**: Compare `innerHTML` lists vs. Keyed reconciliation.
+- [ ] **Leak Detection**: Verify memory stability during high-frequency mount/unmount cycles.

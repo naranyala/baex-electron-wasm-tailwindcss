@@ -1,6 +1,8 @@
 import { wasm } from './wasm';
 import { logPhase } from './debug';
-import { DOMInstruction, BindingInstruction, OptimizedIR } from './ir';
+import { DOMInstruction as IR_DOMInstruction, BindingInstruction, OptimizedIR } from './ir';
+
+export type DOMInstruction = IR_DOMInstruction;
 
 export interface EventBinding {
   marker: string;
@@ -23,8 +25,51 @@ export interface BoolBinding {
 export type Binding = EventBinding | PropertyBinding | BoolBinding;
 
 export interface TemplateResult {
+  html: string;
   root: DOMInstruction;
   bindings: Binding[];
+}
+
+export type ComponentOrTemplate = TemplateResult | (() => TemplateResult);
+
+export function Show(condition: any, thenBranch: ComponentOrTemplate, elseBranch?: ComponentOrTemplate): TemplateResult {
+  const resolve = (t: ComponentOrTemplate): DOMInstruction => {
+    if (typeof t === 'function') {
+      return t().root;
+    }
+    return (t as TemplateResult).root;
+  };
+
+  return {
+    html: '',
+    root: {
+      type: 'show',
+      condition,
+      thenBranch: resolve(thenBranch),
+      elseBranch: elseBranch ? resolve(elseBranch) : undefined,
+    },
+    bindings: [],
+  };
+}
+
+export function For(
+  list: any, 
+  itemTemplate: (item: any) => ComponentOrTemplate,
+  keyFn?: (item: any) => any
+): TemplateResult {
+  return {
+    html: '',
+    root: {
+      type: 'for',
+      list,
+      keyFn,
+      itemTemplate: (item: any) => {
+        const res = itemTemplate(item);
+        return typeof res === 'function' ? res().root : (res as TemplateResult).root;
+      },
+    },
+    bindings: [],
+  };
 }
 
 export const Raw = (value: string) => ({ __raw: true, value });
@@ -84,7 +129,10 @@ function compileToIR(htmlString: string, bindings: ProcessedBinding[]): Optimize
   };
 
   return {
-    root: walk(body),
+    root: {
+      type: 'fragment',
+      children: Array.from(body.childNodes).map(walk)
+    },
     bindings: bindings.map(b => ({
       type: b.type,
       name: b.eventName || b.propName || b.attrName || '',
@@ -113,12 +161,10 @@ export function html(
       }
       return Raw(htmlContent);
     }
-    if (v && typeof v === 'object' && 'root' in v && 'bindings' in v) {
+    if (v && typeof v === 'object' && 'html' in v && 'root' in v && 'bindings' in v) {
       const tr = v as TemplateResult;
       nestedBindings.push(...tr.bindings);
-      // Since we are now using a DOM-Node IR, we can't just return a string for nested templates.
-      // We'll return a special marker that the builder will handle.
-      return Raw(`<!--baex-nested-root-->`);
+      return Raw(tr.html);
     }
     return v;
   };
@@ -152,7 +198,7 @@ export function html(
     return { marker: b.marker, type: 'property', propName: b.name, value: undefined } as any;
   });
 
-  const result: TemplateResult = { root: ir.root, bindings: [...resolvedBindings, ...nestedBindings] };
+  const result: TemplateResult = { html: raw.html, root: ir.root, bindings: [...resolvedBindings, ...nestedBindings] };
   logPhase('TEMPLATE_RESULT', result);
   return result;
 }

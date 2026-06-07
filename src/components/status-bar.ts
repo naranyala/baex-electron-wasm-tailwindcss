@@ -1,12 +1,19 @@
 import { BaexElement, defineComponent, html, createSignal } from '../framework/index.js';
 import { wasm } from '../framework/wasm.js';
 import { mathUtils, stringUtils } from '../framework/utils-wasm.js';
-import { logPhase } from '../framework/debug.js';
 
 export class BaexStatusBar extends BaexElement {
     isOpen = createSignal('status-bar-open', false);
     searchQuery = createSignal('status-bar-search', '');
     showDevTools = createSignal('baex-devtools-open', false);
+
+    private _projectName: string = '';
+
+    onConnected() {
+        const base = document.baseURI || '';
+        const match = base.match(/([^/]+)\/dist\//);
+        this._projectName = match ? match[1] : 'baex-framework';
+    }
 
     private _getAllFunctions() {
         const primitives = Object.keys(wasm).map(key => ({
@@ -47,24 +54,27 @@ export class BaexStatusBar extends BaexElement {
                     }}
                     class="fixed bottom-0 left-0 right-0 h-6 bg-slate-900/80 backdrop-blur-sm border-t border-white/10 text-[10px] text-white/40 flex items-center px-3 justify-between z-50 cursor-pointer hover:bg-slate-800 transition-colors"
                 >
-                    <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-1 min-w-0 truncate">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
+                        <span class="font-mono truncate">${this._projectName}</span>
+                    </div>
+                    <div class="flex items-center gap-2">
                         <span class="flex items-center gap-1">
                             <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-                            Framework Primitives: <span class="text-white font-mono">${primitivesCount}</span>
+                            FW: <span class="text-white font-mono">${primitivesCount}</span>
                         </span>
                         <span class="flex items-center gap-1">
                             <span class="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
-                            Regular WASM Utils: <span class="text-white font-mono">${utilsCount}</span>
+                            WASM: <span class="text-white font-mono">${utilsCount}</span>
                         </span>
-                    </div>
-                    <div class="flex items-center gap-2 opacity-60">
+                        <span class="text-white/20">|</span>
                         <span @click=${(e: any) => {
                             e.stopPropagation();
                             this.showDevTools.value = true;
                             this.isOpen.value = false;
                         }} class="hover:text-white cursor-pointer transition-colors font-bold">DEVTOOLS</span>
                         <span class="text-white/20">|</span>
-                        <span>BAEX Engine v0.0.0</span>
+                        <span>v0.0.0</span>
                         <span class="text-white/20">|</span>
                         <span>WASM Ready</span>
                     </div>

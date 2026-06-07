@@ -1,6 +1,6 @@
 import { BaexElement, defineComponent, html } from '../framework/index.js';
 import { Raw } from '../framework/template.js';
-import { openTab, viewSignal, dbResultsSignal, dbTablesSignal } from '../state/router.js';
+import { openTab, navigateTo, getViewSignal, getDbResultsSignal, getDbTablesSignal } from '../state/router.js';
 import { WASM_ITEMS, FRAMEWORK_ITEMS, type ApiItem } from '../state/api-items.js';
 import { BaexCodeBlock } from './code-block.js';
 import { BaexNav } from './nav.js';
@@ -11,18 +11,55 @@ defineComponent('baex-code-block', BaexCodeBlock);
 defineComponent('baex-nav', BaexNav);
 defineComponent('baex-status-bar', BaexStatusBar);
 
-const CORE_TABLES: Array<{ id: string; name: string; desc: string; color: string }> = [
-  { id: 'customers', name: 'Customers', desc: 'Client contact information and location.', color: 'blue' },
-  { id: 'orders',    name: 'Orders',    desc: 'Customer purchase history and totals.',     color: 'emerald' },
-  { id: 'products',  name: 'Products',  desc: 'Inventory list with pricing and category.', color: 'amber' },
-  { id: 'order_items', name: 'Order Items', desc: 'Detailed line items for each order.',  color: 'purple' },
+interface GridItem {
+  id: string;
+  name: string;
+  desc: string;
+  icon: string;
+  color: string;
+  category: string;
+}
+
+const GRID_ITEMS: GridItem[] = [
+  { id: 'sqlite', name: 'SQLite Native', desc: 'Initialize and query a local SQLite database via the Rust native addon', icon: '🗄️', color: 'emerald', category: 'database' },
+  { id: 'wasm', name: 'WASM Primitives', desc: 'Explore low-level WebAssembly functions — greet, math, and signals', icon: '⚡', color: 'amber', category: 'runtime' },
+  { id: 'framework', name: 'Framework', desc: 'Browse the BAEX reactive UI framework components and APIs', icon: '🧩', color: 'blue', category: 'runtime' },
+  { id: 'vega_bar', name: 'Bar Chart', desc: 'Visualize categorical data distribution with Vega-Lite', icon: '📊', color: 'rose', category: 'charts' },
+  { id: 'vega_line', name: 'Line Chart', desc: 'Plot trends and sequences over time', icon: '📈', color: 'indigo', category: 'charts' },
+  { id: 'vega_scatter', name: 'Scatter Plot', desc: 'Explore correlations between two variables', icon: '🔵', color: 'cyan', category: 'charts' },
 ];
 
-const VEGA_CHARTS: Array<{ id: string; name: string; desc: string; color: string }> = [
-  { id: 'vega_bar', name: 'Bar Chart', desc: 'Distribution of values across categories.', color: 'rose' },
-  { id: 'vega_line', name: 'Line Chart', desc: 'Trends over time or sequence.', color: 'indigo' },
-  { id: 'vega_scatter', name: 'Scatter Plot', desc: 'Correlation between two variables.', color: 'cyan' },
+const RAG_GRID_ITEMS: GridItem[] = [
+  { id: 'rag_loader', name: 'Data Loaders', desc: 'Connect to PDF, Markdown, S3, or Web sources for raw text extraction', icon: '📥', color: 'emerald', category: 'ingestion' },
+  { id: 'rag_chunking', name: 'Text Splitters', desc: 'Configure recursive, character, or semantic chunking strategies', icon: '✂️', color: 'emerald', category: 'ingestion' },
+  { id: 'rag_cleaning', name: 'Data Cleaning', desc: 'Remove noise, boilerplate, and PII from extracted content', icon: '🧹', color: 'emerald', category: 'ingestion' },
+  { id: 'rag_embeddings', name: 'Embedding Models', desc: 'Select and tune models (OpenAI, HuggingFace, Cohere) for vectorization', icon: '🧬', color: 'amber', category: 'vector_ops' },
+  { id: 'rag_vector_store', name: 'Vector Database', desc: 'Manage indexes in Pinecone, Milvus, Weaviate, or FAISS', icon: '🗄️', color: 'amber', category: 'vector_ops' },
+  { id: 'rag_index_mgmt', name: 'Index Manager', desc: 'Create, delete, and optimize vector namespaces and collections', icon: '⚙️', color: 'amber', category: 'vector_ops' },
+  { id: 'rag_search', name: 'Search Strategies', desc: 'Toggle between Semantic, Keyword (BM25), and Hybrid search', icon: '🔍', color: 'blue', category: 'retrieval' },
+  { id: 'rag_reranker', name: 'Re-ranking', desc: 'Apply Cross-Encoders to refine the top-k retrieved documents', icon: '🎯', color: 'blue', category: 'retrieval' },
+  { id: 'rag_context', name: 'Context Window', desc: 'Manage top-k results and context compression to avoid LLM overflow', icon: '📦', color: 'blue', category: 'retrieval' },
+  { id: 'rag_prompt', name: 'Prompt Studio', desc: 'Design system prompts and define how context is injected into the query', icon: '✍️', color: 'purple', category: 'generation' },
+  { id: 'rag_llm_config', name: 'Model Tuning', desc: 'Adjust Temperature, Top-P, and Max Tokens for different LLM versions', icon: '🌡️', color: 'purple', category: 'generation' },
+  { id: 'rag_memory', name: 'Chat Memory', desc: 'Configure window-based or summary-based conversation history', icon: '🧠', color: 'purple', category: 'generation' },
+  { id: 'rag_eval', name: 'RAGAS Metrics', desc: 'Measure Faithfulness, Answer Relevance, and Context Precision', icon: '📈', color: 'rose', category: 'evaluation' },
+  { id: 'rag_ground_truth', name: 'Gold Dataset', desc: 'Compare system responses against manually verified ground truth', icon: '✅', color: 'rose', category: 'evaluation' },
+  { id: 'rag_traces', name: 'Chain Tracing', desc: 'Inspect full execution logs from retrieval to final response', icon: '🕵️', color: 'rose', category: 'evaluation' },
+  { id: 'rag_keys', name: 'API Key Vault', desc: 'Securely manage keys for OpenAI, Anthropic, and Vector DBs', icon: '🔑', color: 'cyan', category: 'infra' },
+  { id: 'rag_monitor', name: 'Resource Monitor', desc: 'Track GPU/CPU usage and API latency for the RAG pipeline', icon: '🖥️', color: 'cyan', category: 'infra' },
 ];
+
+
+function fuzzyMatch(query: string, target: string): boolean {
+  if (!query) return true;
+  const q = query.toLowerCase();
+  const t = target.toLowerCase();
+  let qi = 0;
+  for (let ti = 0; ti < t.length && qi < q.length; ti++) {
+    if (q[qi] === t[ti]) qi++;
+  }
+  return qi === q.length;
+}
 
 export class AppElement extends BaexElement {
   static properties = {
@@ -30,7 +67,6 @@ export class AppElement extends BaexElement {
   };
 
   searchQuery = '';
-  dbPath = 'app.db';
   sqlInput = 'SELECT * FROM users';
   dbStatus = 'Not initialized';
 
@@ -40,7 +76,7 @@ export class AppElement extends BaexElement {
   onConnected() {
     this.addEventListener('click', this._handleClick);
     this.addEventListener('input', this._handleInput);
-    this._unsubscribeView = viewSignal.subscribe((val) => {
+    this._unsubscribeView = getViewSignal().subscribe((val: any) => {
       this._handleViewChange(val as string);
     });
     this.refreshTables();
@@ -92,7 +128,7 @@ export class AppElement extends BaexElement {
       
       // Wait for the next tick so the DOM is rendered
       setTimeout(async () => {
-        const container = this.querySelector('#vega-chart-container');
+        const container = this.querySelector('#vega-chart-container') as HTMLElement | null;
         if (container) {
           try {
             await embed(container, spec, { actions: false });
@@ -104,18 +140,18 @@ export class AppElement extends BaexElement {
       return;
     }
     
-    dbResultsSignal.value = [];
+    getDbResultsSignal().value = [];
 
     if (!window.db) {
-      dbResultsSignal.value = [{ error: 'Database not initialized. Please go to SQLite Native view and click Initialize.' }];
+      getDbResultsSignal().value = [{ error: 'Database not initialized. Please go to SQLite Native view and click Initialize.' }];
       return;
     }
 
     try {
       const results = await window.db.query(`SELECT * FROM ${view}`, []);
-      dbResultsSignal.value = results;
+      getDbResultsSignal().value = results;
     } catch (e: any) {
-      dbResultsSignal.value = [{ error: e.message || e }];
+      getDbResultsSignal().value = [{ error: e.message || e }];
     }
   }
 
@@ -126,10 +162,10 @@ export class AppElement extends BaexElement {
         "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'",
         []
       );
-      dbTablesSignal.value = result.map(r => r.name);
+      getDbTablesSignal().value = result.map(r => r.name);
     } catch (e: any) {
       if (e.message?.includes('Database not initialized')) {
-        dbTablesSignal.value = [];
+        getDbTablesSignal().value = [];
       } else {
         console.error("Failed to refresh tables:", e);
       }
@@ -145,10 +181,6 @@ export class AppElement extends BaexElement {
       this._copyTimer = null;
     }
   }
-
-  private _openTab = (id: string, name: string) => {
-    openTab(id, name);
-  };
 
   private _handleInput = (e: Event) => {
     const target = e.target as HTMLInputElement;
@@ -175,11 +207,10 @@ export class AppElement extends BaexElement {
 
   private _handleDbInit = async () => {
     try {
-      this.dbStatus = 'Initializing...';
+      this.dbStatus = 'Initializing in-memory database...';
       this.requestUpdate();
-      const res = await window.db.init(this.dbPath);
+      const res = await window.db.init();
       
-      // Automatically seed the database after successful initialization
       this.dbStatus = 'Seeding demo data...';
       this.requestUpdate();
       await window.db.seed();
@@ -195,9 +226,9 @@ export class AppElement extends BaexElement {
   private _handleDbQuery = async () => {
     try {
       const results = await window.db.query(this.sqlInput, []);
-      dbResultsSignal.value = results;
+      getDbResultsSignal().value = results;
     } catch (e: any) {
-      dbResultsSignal.value = [{ error: e.message || e }];
+      getDbResultsSignal().value = [{ error: e.message || e }];
     }
   };
 
@@ -215,16 +246,6 @@ export class AppElement extends BaexElement {
     const target = e.target as HTMLInputElement;
     this.sqlInput = target.value;
   };
-
-  private _handlePathInput = (e: Event) => {
-    const target = e.target as HTMLInputElement;
-    this.dbPath = target.value;
-  };
-
-  private _fuzzyMatch(str: string, query: string): boolean {
-    if (!query) return true;
-    return str.toLowerCase().includes(query);
-  }
 
   private _renderAccordionItem(item: ApiItem, idx: number) {
     const escapedCode = item.code ? item.code.replace(/"/g, '&quot;') : '';
@@ -256,110 +277,14 @@ export class AppElement extends BaexElement {
     `;
   }
 
-  private _renderHome() {
-    return html`
-      <div class="space-y-24 py-12">
-        <!-- Hero Section -->
-        <section class="text-center space-y-6">
-          <div class="inline-block px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-medium mb-4">
-            Now in Public Beta
-          </div>
-          <h1 class="text-6xl md:text-7xl font-extrabold tracking-tight text-white">
-            Browser API <br/>
-            <span class="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400">
-              Extended
-            </span>
-          </h1>
-          <p class="text-lg md:text-xl text-white/60 max-w-2xl mx-auto leading-relaxed">
-            BAEX is a high-performance bridge between Rust/WASM and the DOM. 
-            Experience native-speed computation with a seamless reactive framework.
-          </p>
-          <div class="flex items-center justify-center gap-4 pt-4">
-            <button @click=${() => openTab('sqlite', 'SQLite Native')} class="px-8 py-3 bg-white text-black font-bold rounded-full hover:bg-white/90 transition-all">
-              Get Started
-            </button>
-            <button @click=${() => openTab('framework', 'Framework')} class="px-8 py-3 bg-white/5 text-white font-semibold rounded-full border border-white/10 hover:bg-white/10 transition-all">
-              View Docs
-            </button>
-          </div>
-        </section>
-
-        <!-- Value Props -->
-        <section class="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div class="p-8 rounded-3xl bg-white/[0.02] border border-white/[0.05] hover:border-blue-500/30 transition-all group">
-            <div class="w-12 h-12 rounded-2xl bg-blue-500/20 flex items-center justify-center text-blue-400 mb-6 group-hover:scale-110 transition-transform">
-              <span class="text-2xl">⚡</span>
-            </div>
-            <h3 class="text-xl font-bold text-white mb-3">WASM Powered</h3>
-            <p class="text-white/50 leading-relaxed">
-              Execute computationally heavy tasks at near-native speed directly in the browser.
-            </p>
-          </div>
-          <div class="p-8 rounded-3xl bg-white/[0.02] border border-white/[0.05] hover:border-purple-500/30 transition-all group">
-            <div class="w-12 h-12 rounded-2xl bg-purple-500/20 flex items-center justify-center text-purple-400 mb-6 group-hover:scale-110 transition-transform">
-              <span class="text-2xl">⚛️</span>
-            </div>
-            <h3 class="text-xl font-bold text-white mb-3">Reactive DOM</h3>
-            <p class="text-white/50 leading-relaxed">
-              A signal-based reactivity system that minimizes re-renders and maximizes efficiency.
-            </p>
-          </div>
-          <div class="p-8 rounded-3xl bg-white/[0.02] border border-white/[0.05] hover:border-emerald-500/30 transition-all group">
-            <div class="w-12 h-12 rounded-2xl bg-emerald-500/20 flex items-center justify-center text-emerald-400 mb-6 group-hover:scale-110 transition-transform">
-              <span class="text-2xl">💾</span>
-            </div>
-            <h3 class="text-xl font-bold text-white mb-3">Native SQLite</h3>
-            <p class="text-white/50 leading-relaxed">
-              Full relational database capabilities available directly in the client.
-            </p>
-          </div>
-        </section>
-
-        <!-- Feature Showcase -->
-        <section class="space-y-8">
-          <div class="text-center space-y-2">
-            <h2 class="text-3xl font-bold text-white">Explore Capabilities</h2>
-            <p class="text-white/50">Deep dive into the BAEX primitive set.</p>
-          </div>
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            ${[...WASM_ITEMS, ...FRAMEWORK_ITEMS].slice(0, 6).map((item) => html`
-              <div class="p-5 rounded-2xl bg-white/[0.03] border border-white/[0.05] hover:bg-white/[0.05] transition-all group cursor-pointer" @click=${() => openTab(item.group, item.group)}>
-                <div class="flex justify-between items-start mb-2">
-                  <span class="text-xs font-mono px-2 py-0.5 rounded bg-white/10 text-white/40 uppercase tracking-wider">
-                    ${item.group}
-                  </span>
-                  <span class="text-white/20 group-hover:text-white/60 transition-colors">→</span>
-                </div>
-                <h4 class="font-semibold text-white mb-1">${item.name}</h4>
-                <p class="text-sm text-white/50 line-clamp-2">${item.desc}</p>
-              </div>
-            `)}
-          </div>
-          <div class="text-center">
-            <button @click=${() => openTab('framework', 'Framework')} class="text-sm font-medium text-blue-400 hover:text-blue-300 transition-colors">
-              View all primitives →
-            </button>
-          </div>
-        </section>
-      </div>
-    `;
-  }
-
 
   private _renderSqliteMgmt() {
-    const results = dbResultsSignal.value;
+    const results = getDbResultsSignal().value;
     return html`
-      <div class="text-[1.1rem] font-bold text-emerald-400 mt-6 mb-3 pb-2 border-b border-white/10 capitalize">SQLite Native</div>
+      <div class="text-[1.1rem] font-bold text-emerald-400 mt-6 mb-3 pb-2 border-b border-white/10 capitalize">SQLite (In-Memory)</div>
       <div class="space-y-4 mt-4">
         <div class="flex gap-2">
-          <input 
-            type="text" 
-            value=${this.dbPath} 
-            @input=${this._handlePathInput}
-            class="flex-1 px-3 py-2 rounded bg-white/[0.03] border border-white/10 text-sm" 
-            placeholder="database.db"
-          />
-          <button @click=${this._handleDbInit} class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded text-sm font-medium transition-colors">Initialize</button>
+          <button @click=${this._handleDbInit} class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded text-sm font-medium transition-colors">Initialize & Seed</button>
         </div>
         <div class="text-xs text-white/40">Status: <span class="text-white/80">${this.dbStatus}</span></div>
         
@@ -383,7 +308,7 @@ export class AppElement extends BaexElement {
               </tr>
             </thead>
             <tbody>
-              ${results.map(row => html`
+              ${results.map((row: any) => html`
                 <tr class="border-t border-white/5">
                   ${Object.values(row).map(val => html`<td class="px-3 py-2 opacity-70">${val}</td>`)}
                 </tr>
@@ -410,7 +335,7 @@ export class AppElement extends BaexElement {
   }
 
   private _renderTable(tableName: string) {
-    const results = dbResultsSignal.value;
+    const results = getDbResultsSignal().value;
     return html`
       <div class="text-[1.1rem] font-bold text-white mb-3 pb-2 border-b border-white/10 capitalize">${tableName}</div>
       <div class="mt-4 overflow-auto rounded border border-white/10 bg-white/[0.02]">
@@ -421,7 +346,7 @@ export class AppElement extends BaexElement {
             </tr>
           </thead>
           <tbody>
-            ${results.map(row => html`
+            ${results.map((row: any) => html`
               <tr class="border-t border-white/5">
                 ${Object.values(row).map(val => html`<td class="px-3 py-2 opacity-70">${val}</td>`)}
               </tr>
@@ -433,63 +358,63 @@ export class AppElement extends BaexElement {
     `;
   }
 
-  private _renderViewWrapper(title: string, content: any) {
+  private _renderActiveContent(view: string) {
+    let title: string;
+    let content: any;
+ 
+    if (view === 'sqlite') {
+      title = 'SQLite Native';
+      content = this._renderSqliteMgmt();
+    } else if (view === 'wasm') {
+      title = 'Wasm Primitives';
+      content = this._renderWasm();
+    } else if (view === 'framework') {
+      title = 'Framework Primitives';
+      content = this._renderFramework();
+    } else if (view.startsWith('rag_')) {
+      title = view.replace('rag_', '').replace('_', ' ').replace(/([a-z])([A-Z])/g, '$1 $2');
+      content = this._renderRagDetail(view);
+    } else if (view.startsWith('vega_')) {
+      title = view.replace('vega_', '').replace('_', ' ') + ' Chart';
+      content = this._renderVegaChart(view);
+    } else {
+      title = view;
+      content = this._renderTable(view);
+    }
+ 
     return html`
-      <div class="max-w-5xl mx-auto py-12 px-6">
-        <div class="flex items-center justify-between mb-8">
-          <div class="flex items-center gap-4">
-            <button @click=${() => openTab('home', 'Home')} class="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-white/60 hover:text-white transition-all">
-              ← Back to Home
-            </button>
-            <h2 class="text-3xl font-bold text-white">${title}</h2>
+      <div class="flex items-center gap-3 mb-6">
+        <button @click=${() => navigateTo('home')} class="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/40 hover:text-white transition-all text-sm">
+          ← Back
+        </button>
+        <h2 class="text-xl font-bold text-white/90">${title}</h2>
+      </div>
+      <div class="bg-white/[0.02] border border-white/[0.05] rounded-2xl p-6">
+        ${content}
+      </div>
+    `;
+  }
+
+  private _renderRagDetail(id: string) {
+    const item = RAG_GRID_ITEMS.find(i => i.id === id);
+    return html`
+      <div class="space-y-4">
+        <div class="flex items-center gap-3 mb-4">
+          <span class="text-3xl">${item?.icon || '🛠️'}</span>
+          <div>
+            <h3 class="text-lg font-semibold">${item?.name || 'Unknown'}</h3>
+            <p class="text-sm text-white/40">${item?.desc || ''}</p>
           </div>
         </div>
-        <div class="bg-white/[0.02] border border-white/[0.05] rounded-3xl p-8">
-          ${content}
+        <div class="p-8 rounded-xl border border-dashed border-white/10 text-center text-white/30">
+          Backend implementation for <strong>${item?.name}</strong> is pending.
         </div>
       </div>
     `;
   }
 
+
   private _renderVegaChart(chartId: string) {
-    const specs: Record<string, any> = {
-      vega_bar: {
-        $schema: 'https://vega.github.io/schema/vega-lite/v5.json',
-        description: 'A simple bar chart with embedded data',
-        data: { values: [{ a: 'A', b: 28 }, { a: 'B', b: 55 }, { a: 'C', b: 43 }, { a: 'D', b: 91 }, { a: 'E', b: 14 }] },
-        mark: 'bar',
-        encoding: {
-          x: { field: 'a', type: 'nominal', axis: { labelColor: 'white', titleColor: 'white' } },
-          y: { field: 'b', type: 'quantitative', axis: { labelColor: 'white', titleColor: 'white' } },
-        },
-        config: { background: 'transparent', axis: { gridColor: 'rgba(255,255,255,0.1)' } },
-      },
-      vega_line: {
-        $schema: 'https://vega.github.io/schema/vega-lite/v5.json',
-        description: 'A simple line chart with embedded data',
-        data: { values: [{ x: 0, y: 10 }, { x: 1, y: 20 }, { x: 2, y: 15 }, { x: 3, y: 30 }, { x: 4, y: 25 }] },
-        mark: 'line',
-        encoding: {
-          x: { field: 'x', type: 'quantitative', axis: { labelColor: 'white', titleColor: 'white' } },
-          y: { field: 'y', type: 'quantitative', axis: { labelColor: 'white', titleColor: 'white' } },
-        },
-        config: { background: 'transparent', axis: { gridColor: 'rgba(255,255,255,0.1)' } },
-      },
-      vega_scatter: {
-        $schema: 'https://vega.github.io/schema/vega-lite/v5.json',
-        description: 'A simple scatter plot with embedded data',
-        data: { values: [{ x: 1, y: 2 }, { x: 2, y: 4 }, { x: 3, y: 1 }, { x: 4, y: 8 }, { x: 5, y: 6 }] },
-        mark: 'point',
-        encoding: {
-          x: { field: 'x', type: 'quantitative', axis: { labelColor: 'white', titleColor: 'white' } },
-          y: { field: 'y', type: 'quantitative', axis: { labelColor: 'white', titleColor: 'white' } },
-        },
-        config: { background: 'transparent', axis: { gridColor: 'rgba(255,255,255,0.1)' } },
-      },
-    };
-
-    const spec = specs[chartId] || specs.vega_bar;
-
     return html`
       <div class="text-[1.1rem] font-bold text-white mt-6 mb-3 pb-2 border-b border-white/10 capitalize">${chartId.replace('vega_', '')} Chart</div>
       <div class="mt-4 p-4 rounded border border-white/10 bg-white/[0.02] flex justify-center">
@@ -500,41 +425,97 @@ export class AppElement extends BaexElement {
   }
 
   render() {
-    const view = viewSignal.value;
-    
-    if (view === 'home') {
-      return html`
-        <div class="flex flex-col items-center min-h-screen px-4 py-8">
-          <div class="w-full max-w-6xl mt-24">
-            ${this._renderHome()}
-          </div>
-          <baex-status-bar></baex-status-bar>
-        </div>
-      `;
-    }
+    const view = getViewSignal().value;
+    const q = this.searchQuery;
 
-    let content;
-    let title = view;
-    if (view === 'sqlite') {
-      title = 'SQLite Native';
-      content = this._renderSqliteMgmt();
-    } else if (view === 'wasm') {
-      title = 'Wasm Primitives';
-      content = this._renderWasm();
-    } else if (view === 'framework') {
-      title = 'Framework Primitives';
-      content = this._renderFramework();
-    } else if (typeof view === 'string' && view.startsWith('vega_')) {
-      title = view.replace('vega_', '').replace('_', ' ') + ' Chart';
-      content = this._renderVegaChart(view);
-    } else {
-      content = this._renderTable(view);
-    }
+    const filtered = q
+      ? [...GRID_ITEMS, ...RAG_GRID_ITEMS].filter(
+          (item) =>
+            fuzzyMatch(q, item.name) ||
+            fuzzyMatch(q, item.desc) ||
+            fuzzyMatch(q, item.category),
+        )
+      : [...GRID_ITEMS, ...RAG_GRID_ITEMS];
+
+    const borderColors: Record<string, string> = {
+      emerald: 'rgba(52,211,153,0.3)', amber: 'rgba(251,191,36,0.3)',
+      blue: 'rgba(96,165,250,0.3)', rose: 'rgba(251,113,133,0.3)',
+      indigo: 'rgba(129,140,248,0.3)', cyan: 'rgba(34,211,238,0.3)',
+    };
+    const categoryColors: Record<string, string> = {
+      database: '#10b981', runtime: '#8b5cf6', charts: '#f59e0b',
+    };
 
     return html`
-      <div class="flex flex-col items-center min-h-screen px-4 py-8">
-        <div class="w-full max-w-6xl mt-24">
-          ${this._renderViewWrapper(title, content)}
+      <div class="flex flex-col min-h-screen">
+        <div class="flex-1 px-4 py-8">
+          <div class="w-full max-w-5xl mx-auto mt-20 space-y-8">
+            <div class="text-center space-y-2">
+              <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight">
+                <span class="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400">
+                  BAEX
+                </span>
+              </h1>
+            </div>
+
+            <div class="max-w-lg mx-auto relative">
+              <span class="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 text-lg">⌕</span>
+              <input
+                data-search
+                type="text"
+                placeholder="Fuzzy search features…"
+                class="w-full px-11 py-3.5 rounded-2xl bg-white/[0.04] border border-white/[0.08] text-white/90 text-sm placeholder:text-white/20 outline-none focus:border-blue-500/40 focus:bg-white/[0.06] transition-all"
+              />
+              ${q ? html`
+                <span class="absolute right-4 top-1/2 -translate-y-1/2 text-white/20 text-xs">${filtered.length} result${filtered.length !== 1 ? 's' : ''}</span>
+              ` : ''}
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              ${filtered.map(
+                (item) => html`
+                  <div
+                    @click=${() => openTab(item.id, item.name)}
+                    class="home-card group relative p-5 rounded-2xl bg-white/[0.02] border cursor-pointer transition-all ${view === item.id
+                      ? 'border-white/20 ring-1 ring-white/10 bg-white/[0.04]'
+                      : 'border-white/[0.05] hover:bg-white/[0.05]'}"
+                    style="--hc: ${borderColors[item.color] || 'rgba(255,255,255,0.1)'}"
+                  >
+                    <div class="flex items-start justify-between mb-3">
+                      <span class="text-2xl">${item.icon}</span>
+                      <span
+                        class="text-[0.65rem] font-mono uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/[0.05]"
+                        style="color: ${categoryColors[item.category] || 'rgba(255,255,255,0.3)'}"
+                      >
+                        ${item.category}
+                      </span>
+                    </div>
+                    <h3 class="font-semibold text-white/90 text-[0.95rem] mb-1.5">${item.name}</h3>
+                    <p class="text-xs text-white/40 leading-relaxed line-clamp-2">${item.desc}</p>
+                  </div>
+                `,
+              )}
+            </div>
+
+            ${filtered.length === 0 && q ? html`
+              <div class="text-center py-16 text-white/30">
+                <p class="text-lg">No matches for <span class="text-white/50 font-mono">"${this.searchQuery}"</span></p>
+                <p class="text-sm mt-1 text-white/20">Try a different keyword</p>
+              </div>
+            ` : ''}
+
+            ${filtered.length === 0 && !q ? html`
+              <div class="text-center py-16 text-white/20">
+                <p class="text-lg">No features available yet.</p>
+              </div>
+            ` : ''}
+
+            ${view !== 'home' ? html`
+              <div class="pt-6 border-t border-white/[0.06]">
+                ${this._renderActiveContent(view)}
+              </div>
+            ` : ''}
+          </div>
         </div>
         <baex-status-bar></baex-status-bar>
       </div>
