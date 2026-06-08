@@ -102,6 +102,14 @@ function compileToIR(htmlString: string, bindings: ProcessedBinding[]): Optimize
       const el = node as HTMLElement;
       const tagName = el.tagName.toLowerCase();
       
+      // Extract all static attributes (skip data-baex binding markers)
+      const attrs: Record<string, string> = {};
+      for (const attr of el.attributes) {
+        if (attr.name !== 'data-baex') {
+          attrs[attr.name] = attr.value;
+        }
+      }
+
       // Find bindings associated with this element's marker
       const marker = el.getAttribute('data-baex');
       const elementBindings: BindingInstruction[] = [];
@@ -120,6 +128,7 @@ function compileToIR(htmlString: string, bindings: ProcessedBinding[]): Optimize
       return {
         type: 'element',
         tag: tagName,
+        attrs,
         children: Array.from(el.childNodes).map(walk),
         bindings: elementBindings
       };

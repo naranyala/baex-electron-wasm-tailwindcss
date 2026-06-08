@@ -1,5 +1,5 @@
-import { BaexElement, defineComponent, html } from '../framework/index.js';
-import { getTabsSignal, getViewSignal, navigateTo } from '../state/router.js';
+import { BaexElement, defineComponent, html } from '@core/framework/index';
+import { getTabsSignal, getViewSignal, navigateTo } from '@core/state/router';
 
 interface Tab {
   id: string;
@@ -76,11 +76,11 @@ export class BaexNav extends BaexElement {
 
   render() {
     return html`
-      <nav class="fixed top-0 left-0 right-0 z-50 flex justify-center p-4 bg-[#020917]/80 backdrop-blur-md">
-        <div class="absolute left-4">
+      <nav class="fixed top-0 left-0 right-0 z-50 flex justify-center px-6 py-4 bg-[#020917]/80 backdrop-blur-lg border-b border-white/[0.03]">
+        <div class="absolute left-6">
           <button
             @click=${() => navigateTo('home')}
-            class="px-5 py-2 text-sm font-medium text-white/80 transition-colors duration-200 rounded-full bg-white/5 hover:bg-white/10 hover:text-white"
+            class="px-5 py-2 text-sm font-medium text-white/80 transition-colors duration-200 rounded-full bg-white/[0.04] hover:bg-white/10 hover:text-white"
           >
             Home
           </button>
@@ -88,7 +88,7 @@ export class BaexNav extends BaexElement {
         
         <div
           @click=${this._handleNav}
-          class="relative flex items-center gap-1 cursor-pointer bg-white/5 p-1 rounded-full"
+          class="relative flex items-center gap-1 cursor-pointer bg-white/[0.04] p-1 rounded-full"
         >
           <div class="nav-indicator absolute top-0 bottom-0 left-0 rounded-full bg-white/10 transition-all duration-300 ease-out"></div>
 

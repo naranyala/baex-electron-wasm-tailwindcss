@@ -1,10 +1,10 @@
-import { BaexElement, defineComponent, html } from '../framework/index.js';
-import { Raw } from '../framework/template.js';
-import { openTab, navigateTo, getViewSignal, getDbResultsSignal, getDbTablesSignal } from '../state/router.js';
-import { WASM_ITEMS, FRAMEWORK_ITEMS, type ApiItem } from '../state/api-items.js';
-import { BaexCodeBlock } from './code-block.js';
-import { BaexNav } from './nav.js';
-import { BaexStatusBar } from './status-bar.js';
+import { BaexElement, defineComponent, html } from '@core/framework/index';
+import { Raw } from '@core/framework/template';
+import { openTab, navigateTo, getViewSignal, getDbResultsSignal, getDbTablesHSignal } from '@core/state/router';
+import { WASM_ITEMS, FRAMEWORK_ITEMS, type ApiItem } from '@core/state/api-items';
+import { BaexCodeBlock } from '@shared/components/CodeBlock';
+import { BaexNav } from '@shared/components/Nav';
+import { BaexStatusBar } from '@shared/components/StatusBar';
 import embed from 'vega-embed';
 
 defineComponent('baex-code-block', BaexCodeBlock);
@@ -444,74 +444,85 @@ export class AppElement extends BaexElement {
     };
     const categoryColors: Record<string, string> = {
       database: '#10b981', runtime: '#8b5cf6', charts: '#f59e0b',
+      ingestion: '#10b981', vector_ops: '#f59e0b',
+      retrieval: '#60a5fa', generation: '#a78bfa',
+      evaluation: '#fb7185', infra: '#22d3ee',
     };
 
     return html`
       <div class="flex flex-col min-h-screen">
-        <div class="flex-1 px-4 py-8">
-          <div class="w-full max-w-5xl mx-auto mt-20 space-y-8">
-            <div class="text-center space-y-2">
-              <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight">
+        <div class="flex-1 px-8 md:px-12 lg:px-20 xl:px-28 py-10">
+          <div class="w-full max-w-7xl mx-auto mt-28 space-y-14">
+            <div class="text-center space-y-4">
+              <h1 class="text-6xl md:text-7xl font-black tracking-tight">
                 <span class="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400">
                   BAEX
                 </span>
               </h1>
+              <p class="text-white/25 text-sm font-medium tracking-[0.3em] uppercase">Browser API Extended</p>
             </div>
 
-            <div class="max-w-lg mx-auto relative">
-              <span class="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 text-lg">⌕</span>
+            <div class="max-w-2xl mx-auto relative">
+              <span class="absolute left-5 top-1/2 -translate-y-1/2 text-white/20 text-lg pointer-events-none">⌕</span>
               <input
                 data-search
                 type="text"
-                placeholder="Fuzzy search features…"
-                class="w-full px-11 py-3.5 rounded-2xl bg-white/[0.04] border border-white/[0.08] text-white/90 text-sm placeholder:text-white/20 outline-none focus:border-blue-500/40 focus:bg-white/[0.06] transition-all"
+                placeholder="Search features, categories, or keywords…"
+                class="w-full px-12 py-4 rounded-2xl bg-white/[0.03] border border-white/[0.06] text-white/90 text-sm placeholder:text-white/20 outline-none focus:border-blue-500/40 focus:bg-white/[0.06] focus:ring-2 focus:ring-blue-500/10 transition-all"
               />
               ${q ? html`
-                <span class="absolute right-4 top-1/2 -translate-y-1/2 text-white/20 text-xs">${filtered.length} result${filtered.length !== 1 ? 's' : ''}</span>
+                <span class="absolute right-5 top-1/2 -translate-y-1/2 text-white/25 text-xs font-mono">${filtered.length} result${filtered.length !== 1 ? 's' : ''}</span>
               ` : ''}
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              ${filtered.map(
-                (item) => html`
-                  <div
-                    @click=${() => openTab(item.id, item.name)}
-                    class="home-card group relative p-5 rounded-2xl bg-white/[0.02] border cursor-pointer transition-all ${view === item.id
-                      ? 'border-white/20 ring-1 ring-white/10 bg-white/[0.04]'
-                      : 'border-white/[0.05] hover:bg-white/[0.05]'}"
-                    style="--hc: ${borderColors[item.color] || 'rgba(255,255,255,0.1)'}"
-                  >
-                    <div class="flex items-start justify-between mb-3">
-                      <span class="text-2xl">${item.icon}</span>
-                      <span
-                        class="text-[0.65rem] font-mono uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/[0.05]"
-                        style="color: ${categoryColors[item.category] || 'rgba(255,255,255,0.3)'}"
-                      >
-                        ${item.category}
-                      </span>
+            <div>
+              <div class="flex items-center gap-3 mb-6">
+                <h2 class="text-xs font-semibold tracking-[0.2em] uppercase text-white/20">Explore Features</h2>
+                <span class="h-px flex-1 bg-white/5"></span>
+                <span class="text-[0.65rem] font-mono text-white/15">${filtered.length} item${filtered.length !== 1 ? 's' : ''}</span>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                ${filtered.map(
+                  (item) => html`
+                    <div
+                      @click=${() => openTab(item.id, item.name)}
+                      class="home-card relative p-7 rounded-2xl bg-white/5 border cursor-pointer transition-all duration-200 hover:-translate-y-1.5 hover:shadow-xl ${view === item.id
+                        ? 'border-white/25 ring-1 ring-white/20 bg-white/[0.07] shadow-lg'
+                        : 'border-white/[0.06] hover:border-white/20 hover:bg-white/[0.07]'}"
+                      style="--hc: ${borderColors[item.color] || 'rgba(255,255,255,0.15)'}"
+                    >
+                      <div class="flex items-start justify-between mb-4">
+                        <span class="text-3xl leading-none">${item.icon}</span>
+                        <span
+                          class="text-[0.6rem] font-mono uppercase tracking-widest px-2.5 py-1 rounded-full bg-white/[0.06] border border-white/[0.04]"
+                          style="color: ${categoryColors[item.category] || 'rgba(255,255,255,0.35)'}"
+                        >
+                          ${item.category}
+                        </span>
+                      </div>
+                      <h3 class="font-semibold text-white/90 text-[0.95rem] mb-2">${item.name}</h3>
+                      <p class="text-xs text-white/40 leading-relaxed line-clamp-2">${item.desc}</p>
                     </div>
-                    <h3 class="font-semibold text-white/90 text-[0.95rem] mb-1.5">${item.name}</h3>
-                    <p class="text-xs text-white/40 leading-relaxed line-clamp-2">${item.desc}</p>
-                  </div>
-                `,
-              )}
+                  `,
+                )}
+              </div>
             </div>
 
             ${filtered.length === 0 && q ? html`
-              <div class="text-center py-16 text-white/30">
+              <div class="text-center py-20 text-white/30">
                 <p class="text-lg">No matches for <span class="text-white/50 font-mono">"${this.searchQuery}"</span></p>
                 <p class="text-sm mt-1 text-white/20">Try a different keyword</p>
               </div>
             ` : ''}
 
             ${filtered.length === 0 && !q ? html`
-              <div class="text-center py-16 text-white/20">
+              <div class="text-center py-20 text-white/20">
                 <p class="text-lg">No features available yet.</p>
               </div>
             ` : ''}
 
             ${view !== 'home' ? html`
-              <div class="pt-6 border-t border-white/[0.06]">
+              <div class="pt-8 border-t border-white/[0.06]">
                 ${this._renderActiveContent(view)}
               </div>
             ` : ''}

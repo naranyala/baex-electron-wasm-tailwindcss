@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from 'vitest';
-import { BaexElement, defineComponent, createSignal } from '../framework/index.js';
-import { html } from '../framework/template.js';
-import { setupWasm } from '../framework/setup.js';
+import { BaexElement, defineComponent, createSignal } from '../core/framework/index.js';
+import { html } from '../core/framework/template.js';
+import { setupWasm } from '../core/framework/setup.js';
 
 beforeAll(async () => {
   await setupWasm();

@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createSignal, createEffect, createStore, Computed, clearSignalCache } from '../framework/signals';
-import { createContext, provideContext, consumeContext } from '../framework/context';
-import { html, Show, For } from '../framework/template';
-import { BaexElement } from '../framework/baex-element';
+import { createSignal, createEffect, createStore, Computed, clearSignalCache } from '../core/framework/signals';
+import { createContext, provideContext, consumeContext } from '../core/framework/context';
+import { html, Show, For } from '../core/framework/template';
+import { BaexElement } from '../core/framework/baex-element';
 
-vi.mock('../framework/wasm', () => {
+vi.mock('../core/framework/wasm', () => {
   return {
     wasm: {
       createSignal: vi.fn(),

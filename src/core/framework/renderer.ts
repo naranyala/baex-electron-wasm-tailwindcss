@@ -27,6 +27,12 @@ export function buildDOM(
   if (instruction.type === 'element') {
     const el = document.createElement(instruction.tag);
     
+    if (instruction.attrs) {
+      for (const [name, value] of Object.entries(instruction.attrs)) {
+        el.setAttribute(name, value);
+      }
+    }
+
     if (instruction.bindings) {
       for (const bInst of instruction.bindings) {
         const binding = allBindings.find(b => b.marker === bInst.marker);

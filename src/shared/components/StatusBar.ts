@@ -1,6 +1,6 @@
-import { BaexElement, defineComponent, html, createSignal } from '../framework/index.js';
-import { wasm } from '../framework/wasm.js';
-import { mathUtils, stringUtils } from '../framework/utils-wasm.js';
+import { BaexElement, defineComponent, html, createSignal } from '@core/framework/index';
+import { wasm } from '@core/framework/wasm';
+import { mathUtils, stringUtils } from '@core/framework/utils-wasm';
 
 export class BaexStatusBar extends BaexElement {
     isOpen = createSignal('status-bar-open', false);
@@ -52,7 +52,7 @@ export class BaexStatusBar extends BaexElement {
                             this.showDevTools.value = false;
                         }
                     }}
-                    class="fixed bottom-0 left-0 right-0 h-6 bg-slate-900/80 backdrop-blur-sm border-t border-white/10 text-[10px] text-white/40 flex items-center px-3 justify-between z-50 cursor-pointer hover:bg-slate-800 transition-colors"
+                    class="fixed bottom-0 left-0 right-0 h-6 bg-[#020917]/90 backdrop-blur-sm border-t border-white/[0.04] text-[10px] text-white/35 flex items-center px-4 justify-between z-50 cursor-pointer hover:bg-[#020917] transition-colors"
                 >
                     <div class="flex items-center gap-1 min-w-0 truncate">
                         <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>

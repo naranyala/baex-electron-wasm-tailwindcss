@@ -1,6 +1,6 @@
-import { highlightCode } from '../framework/highlighter.js';
-import { BaexElement } from '../framework/index.js';
-import { html, Raw } from '../framework/template.js';
+import { highlightCode } from '@core/framework/highlighter';
+import { BaexElement } from '@core/framework/index';
+import { html, Raw } from '@core/framework/template';
 
 export class BaexCodeBlock extends BaexElement {
   static properties = {

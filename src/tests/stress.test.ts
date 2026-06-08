@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { setupWasm } from '../framework/setup.js';
-import { BaexElement, defineComponent, html } from '../framework/index.js';
-import { Signal } from '../framework/signals.js';
+import { setupWasm } from '../core/framework/setup.js';
+import { BaexElement, defineComponent, html } from '../core/framework/index.js';
+import { Signal } from '../core/framework/signals.js';
 
 const flush = () => new Promise<void>((r) => setTimeout(r, 0));
 

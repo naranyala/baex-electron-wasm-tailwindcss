@@ -18,7 +18,7 @@ export const ASTNodeSchema: z.ZodType<any> = z.lazy(() => z.object({
 export type ASTNode = z.infer<typeof ASTNodeSchema>;
  
 export type DOMInstruction = 
-  | { type: 'element'; tag: string; children: DOMInstruction[]; bindings: BindingInstruction[] }
+  | { type: 'element'; tag: string; attrs: Record<string, string>; children: DOMInstruction[]; bindings: BindingInstruction[] }
   | { type: 'text'; content: string }
   | { type: 'fragment'; children: DOMInstruction[] }
   | { type: 'show'; condition: any; thenBranch: DOMInstruction; elseBranch?: DOMInstruction }

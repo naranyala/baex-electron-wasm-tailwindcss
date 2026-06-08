@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createSignal, createEffect } from '../framework/signals';
-import { html } from '../framework/template';
-import { mount } from '../framework/component';
+import { createSignal, createEffect } from '../core/framework/signals';
+import { html } from '../core/framework/template';
+import { mount } from '../core/framework/component';
 
-vi.mock('../framework/wasm', () => {
+vi.mock('../core/framework/wasm', () => {
   return {
     wasm: {
       createSignal: vi.fn(),

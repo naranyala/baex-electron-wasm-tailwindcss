@@ -1,8 +1,8 @@
-import './index.css';
-import { ensureWasmReady } from './framework/wasm.js';
-import { initDatabase, seedDatabase, executeSql, querySql } from './sqlite/db.js';
-import { handleGlobalError } from './framework/error-handler.js';
-import './components/app.js';
+import './shared/styles/index.css';
+import { ensureWasmReady } from '@core/framework/wasm';
+import { initDatabase, seedDatabase, executeSql, querySql } from '@core/sqlite/db';
+import { handleGlobalError } from '@core/framework/error-handler';
+import '@features/home/components/App';
  
 const rootEl = document.querySelector('#root');
 if (!rootEl) throw new Error('#root not found');
