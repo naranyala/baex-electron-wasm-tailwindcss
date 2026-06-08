@@ -123,7 +123,7 @@ function parseRustFortress(content: string, filename: string, module: string, co
                 signature: signatureBuffer,
                 description: currentDocs.join(' '),
                 language: 'rust',
-                file: filename,
+                file: path.join(config.rootPath, filename),
                 module,
                 context: currentContext,
                 warnings: []
@@ -220,7 +220,7 @@ function parseTypeScriptFortress(content: string, filename: string, module: stri
                     signature: signatureBuffer,
                     description: currentDocs.join(' '),
                     language: 'ts',
-                    file: filename,
+                    file: path.join(config.rootPath, filename),
                     module,
                     context: currentContext,
                     warnings: []

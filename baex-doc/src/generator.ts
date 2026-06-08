@@ -12,6 +12,27 @@ export function generateReport(items: ApiItem[], globalWarnings: string[]): stri
     let contentHtml = '';
     let navHtml = '';
 
+    const totalItems = items.length;
+    const documentedCount = items.filter(i => i.description && i.description.trim().length > 0).length;
+    const undocumentedCount = totalItems - documentedCount;
+
+    // Filter Bar
+    contentHtml += `
+        <div class="filter-bar">
+            <div class="filter-group">
+                <button class="filter-btn active" data-filter="all">
+                    All <span>${totalItems}</span>
+                </button>
+                <button class="filter-btn" data-filter="documented">
+                    Documented <span>${documentedCount}</span>
+                </button>
+                <button class="filter-btn" data-filter="undocumented">
+                    Undocumented <span>${undocumentedCount}</span>
+                </button>
+            </div>
+        </div>
+    `;
+
     // Summary Section
     if (globalWarnings.length > 0) {
         contentHtml += `
@@ -37,7 +58,7 @@ export function generateReport(items: ApiItem[], globalWarnings: string[]): stri
             <div class="nav-group">
                 <h3>${module}</h3>
                 ${groupItems.sort((a, b) => a.name.localeCompare(b.name)).map(item => `
-                    <a class="nav-item" data-target="${item.name}">
+                    <a class="nav-item" data-target="${item.name}" data-has-doc="${item.description && item.description.trim().length > 0 ? 'true' : 'false'}">
                         ${item.name}
                     </a>
                 `).join('')}
@@ -48,7 +69,7 @@ export function generateReport(items: ApiItem[], globalWarnings: string[]): stri
             <section class="api-section" id="${moduleId}">
                 <h2>${module}</h2>
                 ${groupItems.sort((a, b) => a.name.localeCompare(b.name)).map(item => `
-                    <div class="api-item" id="${item.name}">
+                    <div class="api-item" id="${item.name}" data-has-doc="${item.description && item.description.trim().length > 0 ? 'true' : 'false'}">
                         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
                             <span class="tag ${item.language === 'rust' ? 'tag-rust' : 'tag-ts'}">${item.language}</span>
                             <strong style="font-size: 1.2rem;">${item.name}</strong>
@@ -61,7 +82,10 @@ export function generateReport(items: ApiItem[], globalWarnings: string[]): stri
                         ` : ''}
                         <div class="signature"><pre><code class="language-${item.language === 'rust' ? 'rust' : 'typescript'}">${item.signature}</code></pre></div>
                         <div class="description">${item.description || '<em>No documentation provided.</em>'}</div>
-                        <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 1rem;">Source: ${item.file}</div>
+                        <div class="source-footer">
+                            <span class="source-label">Source:</span>
+                            <code class="source-path">${item.file}</code>
+                        </div>
                     </div>
                 `).join('')}
             </section>
