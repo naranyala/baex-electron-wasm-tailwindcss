@@ -1,3 +1,6 @@
+export type Callback = () => void;
+export type SignalSubscriber = (val: unknown) => void;
+
 export interface PropertyDeclaration {
   type?:
     | StringConstructor

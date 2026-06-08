@@ -1,3 +1,16 @@
+import { wasm } from './wasm';
+import { tracker } from './dependency-tracker';
+import { getSignal } from './signals';
+import {
+  normalizePatches,
+  resolveAttributeName,
+  serializeProperty,
+  deserializeProperty,
+} from './utils';
+import { buildDOM, RenderContext } from './renderer';
+import { PropertyDeclaration, PropertyValues, Callback } from './types';
+import { Binding, TemplateResult } from './template';
+
 /**
  * Base class for all BAEX reactive components.
  * Extends HTMLElement to integrate with the native Web Component API.

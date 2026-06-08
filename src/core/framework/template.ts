@@ -208,8 +208,11 @@ export function html(
 
   const ir = compileToIR(raw.html, raw.bindings);
 
-  const resolvedBindings: Binding[] = ir.bindings.map((b: BindingInstruction) => {
-    if (b.valueIdx !== -1) {
+  const nestedMarkers = new Set(nestedBindings.map(b => b.marker));
+  const resolvedBindings: Binding[] = ir.bindings
+    .filter(b => !nestedMarkers.has(b.marker))
+    .map((b: BindingInstruction) => {
+      if (b.valueIdx !== -1) {
       const rawValue = processedValues[b.valueIdx];
       if (b.type === 'property' && isSignalLike(rawValue)) {
         return {

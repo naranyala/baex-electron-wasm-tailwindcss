@@ -1,3 +1,7 @@
+import { wasm } from './wasm';
+import { tracker } from './dependency-tracker';
+import { SignalSubscriber } from './types';
+
 /**
  * Registers a cleanup function to be executed when the current reactive context is disposed.
  * @param fn The function to execute during cleanup.
