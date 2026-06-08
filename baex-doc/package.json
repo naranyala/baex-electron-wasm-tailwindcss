@@ -1,0 +1,12 @@
+{
+  "name": "baex-doc",
+  "version": "0.1.0",
+  "description": "Lightweight API documentation generator for BAEX",
+  "type": "module",
+  "scripts": {
+    "generate": "bun run src/index.ts"
+  },
+  "dependencies": {
+    "glob": "^11.0.0"
+  }
+}

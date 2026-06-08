@@ -2,7 +2,7 @@
 
 <!-- ![bee-holding-axe](./bee-holding-axe.jpg) -->
 
-<img src="./bee-holding-axe.jpg" width="30%" align="center">
+<div style="width: 100%; text-align: center;"><img src="./bee-holding-axe2.jpg" width="30%"></div>
 
 Baex is a high-performance, reactive web framework built on top of Rust/WASM, designed to extend Browser APIs with modern reactive capabilities.
 

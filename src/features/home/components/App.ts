@@ -1,6 +1,6 @@
 import { BaexElement, defineComponent, html } from '@core/framework/index';
 import { Raw } from '@core/framework/template';
-import { openTab, navigateTo, getViewSignal, getDbResultsSignal, getDbTablesHSignal } from '@core/state/router';
+import { openTab, navigateTo, getViewSignal, getDbResultsSignal, getDbTablesSignal } from '@core/state/router';
 import { WASM_ITEMS, FRAMEWORK_ITEMS, type ApiItem } from '@core/state/api-items';
 import { BaexCodeBlock } from '@shared/components/CodeBlock';
 import { BaexNav } from '@shared/components/Nav';

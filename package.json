@@ -11,6 +11,8 @@
     "build:native": "cd rust-native/db-core && cargo build --release && cp target/release/libdb_core.so index.node",
     "build:wasm": "wasm-pack build rust-wasm --target web && wasm-pack build rust-utils/math-utils --target web && wasm-pack build rust-utils/string-utils --target web",
     "build": "bun run build:native && bun run build:wasm && bun x tsc && bun x vite build && bun x electron-builder",
+    "docs:gen": "cd baex-doc && bun install && bun run generate",
+    "docs:serve": "bun x serve dist",
     "preview": "bun x vite preview"
   },
   "devDependencies": {

@@ -1,5 +1,5 @@
-import initMath, { add, multiply, factorial } from '../../rust-utils/math-utils/pkg/math_utils.js';
-import initString, { reverse_string, count_vowels, to_snake_case } from '../../rust-utils/string-utils/pkg/string_utils.js';
+import initMath, { add, multiply, factorial } from '../../../rust-utils/math-utils/pkg/math_utils.js';
+import initString, { reverse_string, count_vowels, to_snake_case } from '../../../rust-utils/string-utils/pkg/string_utils.js';
 
 let mathReady = false;
 let stringReady = false;

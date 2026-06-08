@@ -32,6 +32,13 @@ export interface TemplateResult {
 
 export type ComponentOrTemplate = TemplateResult | (() => TemplateResult);
 
+/**
+ * A conditional rendering primitive.
+ * If the condition is truthy, renders the 'thenBranch'; otherwise renders the 'elseBranch'.
+ * @param condition The condition to evaluate.
+ * @param thenBranch The content to render if condition is true.
+ * @param elseBranch Optional content to render if condition is false.
+ */
 export function Show(condition: any, thenBranch: ComponentOrTemplate, elseBranch?: ComponentOrTemplate): TemplateResult {
   const resolve = (t: ComponentOrTemplate): DOMInstruction => {
     if (typeof t === 'function') {
@@ -52,6 +59,13 @@ export function Show(condition: any, thenBranch: ComponentOrTemplate, elseBranch
   };
 }
 
+/**
+ * A list rendering primitive.
+ * Iterates over a collection and renders a template for each item.
+ * @param list The collection to iterate over.
+ * @param itemTemplate A function that returns a template for a single item.
+ * @param keyFn Optional function to generate a unique key for each item for efficient reconciliation.
+ */
 export function For(
   list: any, 
   itemTemplate: (item: any) => ComponentOrTemplate,
@@ -72,6 +86,10 @@ export function For(
   };
 }
 
+/**
+ * Wraps a string to mark it as raw HTML that should not be escaped by the template engine.
+ * @param value The raw HTML string.
+ */
 export const Raw = (value: string) => ({ __raw: true, value });
 
 interface ProcessedBinding {
@@ -151,6 +169,13 @@ function compileToIR(htmlString: string, bindings: ProcessedBinding[]): Optimize
   };
 }
 
+/**
+ * The core HTML template function.
+ * Uses tagged template literals to produce a reactive TemplateResult.
+ * It delegates parsing to the WASM engine for high performance.
+ * @param strings The template string parts.
+ * @param values The dynamic values embedded in the template.
+ */
 export function html(
   strings: TemplateStringsArray,
   ...values: unknown[]
@@ -212,6 +237,11 @@ export function html(
   return result;
 }
 
+/**
+ * A tagged template literal for defining CSS styles dynamically.
+ * @param strings The CSS template string parts.
+ * @param values The dynamic values embedded in the CSS.
+ */
 export function css(
   strings: TemplateStringsArray,
   ...values: unknown[]

@@ -1,8 +1,7 @@
-import { wasm } from './wasm';
-import { tracker } from './dependency-tracker';
-
-type SignalSubscriber = (value: unknown) => void;
-
+/**
+ * Registers a cleanup function to be executed when the current reactive context is disposed.
+ * @param fn The function to execute during cleanup.
+ */
 export function onCleanup(fn: () => void) {
   const stack = tracker.currentCleanupStack;
   if (stack) {
@@ -10,12 +9,21 @@ export function onCleanup(fn: () => void) {
   }
 }
 
+/**
+ * A reactive primitive that holds a value and notifies subscribers when it changes.
+ * It synchronizes with the WASM engine for cross-language reactivity.
+ */
 export class Signal<T = unknown> {
   protected _id: number;
   protected _value: T;
   protected _initialized = false;
   protected _subscribers: Set<SignalSubscriber> = new Set();
  
+  /**
+   * Creates a new Signal.
+   * @param key A unique identifier for the signal, used for WASM synchronization.
+   * @param initial The initial value of the signal.
+   */
   constructor(key: string, initial: T) {
     this._id = wasm.getOrCreateSignalId(key);
     this._value = initial;
@@ -28,12 +36,18 @@ export class Signal<T = unknown> {
     }
   }
  
+  /**
+   * Gets the current value of the signal and tracks it as a dependency.
+   */
   get value(): T {
     this._init();
     tracker.track(this._id);
     return this._value;
   }
  
+  /**
+   * Sets the signal value, updates the WASM engine, and notifies all subscribers.
+   */
   set value(v: T) {
     this._init();
     this._value = v;
@@ -46,10 +60,18 @@ export class Signal<T = unknown> {
     tracker.notify(this._id);
   }
  
+  /**
+   * Returns the current value without tracking it as a dependency.
+   */
   peek(): T {
     return this._value;
   }
  
+  /**
+   * Subscribes to signal changes.
+   * @param cb The callback to invoke on change.
+   * @returns A function to unsubscribe from the signal.
+   */
   subscribe(cb: SignalSubscriber): () => void {
     this._subscribers.add(cb);
     
@@ -63,15 +85,26 @@ export class Signal<T = unknown> {
     };
   }
  
+  /**
+   * The internal unique ID of the signal.
+   */
   get key(): string {
     return this._id.toString();
   }
 }
 
 
+/**
+ * A read-only signal that derives its value from another signal or a calculation.
+ * It automatically updates whenever its dependencies change.
+ */
 export class Computed<T = unknown> extends Signal<T> {
   private _fn: () => T;
 
+  /**
+   * Creates a computed signal based on the provided function.
+   * @param fn The derivation function.
+   */
   constructor(fn: () => T) {
     super(null as any, fn());
     this._fn = fn;
@@ -83,6 +116,9 @@ export class Computed<T = unknown> extends Signal<T> {
     return this._value;
   }
 
+  /**
+   * Internal update logic that re-evaluates the computed function.
+   */
   private _update = () => {
     tracker.begin(this._update);
     const newValue = this._fn();
@@ -96,6 +132,11 @@ export class Computed<T = unknown> extends Signal<T> {
   }
 }
 
+/**
+ * Creates a reactive side-effect that runs whenever its dependencies change.
+ * @param fn The effect function. Can return a cleanup function.
+ * @returns A function to dispose of the effect.
+ */
 export function createEffect(fn: () => void | (() => void)) {
   const effect = () => {
     tracker.begin(effect);
@@ -127,6 +168,11 @@ function getStoreKey(obj: object): string {
   return key;
 }
 
+/**
+ * Creates a deeply reactive state object using a Proxy.
+ * Updates to properties in the store automatically notify subscribers.
+ * @param initialState The initial state object.
+ */
 export function createStore<T extends object>(initialState: T): T {
   const handler: ProxyHandler<any> = {
     get(target, prop, receiver) {
@@ -153,6 +199,11 @@ export function createStore<T extends object>(initialState: T): T {
 let signalCounter = 0;
 const signalCache = new Map<string, Signal>();
 
+/**
+ * Creates or retrieves a signal from the global cache.
+ * @param key Optional unique key for the signal.
+ * @param initial Initial value.
+ */
 export function createSignal<T>(key: string | null, initial: T): Signal<T> {
   const actualKey = key ?? `__signal_${++signalCounter}`;
   const existing = signalCache.get(actualKey);
@@ -162,10 +213,16 @@ export function createSignal<T>(key: string | null, initial: T): Signal<T> {
   return signal;
 }
 
+/**
+ * Retrieves an existing signal by its key.
+ */
 export function getSignal<T>(key: string): Signal<T> | undefined {
   return signalCache.get(key) as Signal<T> | undefined;
 }
 
+/**
+ * Clears the global signal cache, useful for testing or hot-reloading.
+ */
 export function clearSignalCache() {
   signalCache.clear();
 }

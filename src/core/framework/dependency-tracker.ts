@@ -1,7 +1,7 @@
-// @RULE: DependencyTracker MUST support re-entrant calls for nested component rendering.
-
-export type Callback = () => void;
-
+/**
+ * Global dependency tracker for the reactive system.
+ * Manages automatic subscription of effects and components to signals.
+ */
 class DependencyTracker {
   // Global map of signal keys to their subscribers
   private _subscribers = new Map<string | number, Set<Callback>>();
@@ -12,18 +12,25 @@ class DependencyTracker {
   // The current cleanup stack associated with the active context
   private _currentCleanupStack: Callback[] | null = null;
 
+  /** Returns the active cleanup stack for the current reactive context. */
   get currentCleanupStack() {
     return this._currentCleanupStack;
   }
 
-  // Start tracking in a new context. Optional cleanup stack for component-level lifecycle.
+  /**
+   * Starts tracking dependencies for a given listener.
+   * @param listener The callback to trigger when any tracked signal changes.
+   * @param cleanupStack Optional stack for storing cleanup functions.
+   */
   begin(listener?: Callback, cleanupStack?: Callback[] | null) {
     if (listener) this._activeListener = listener;
     this._currentCleanupStack = cleanupStack || null;
     this._contextStack.push(new Set());
   }
 
-  // Stop tracking in current context and return the tracked dependencies
+  /**
+   * Stops tracking and returns the set of dependencies collected in the current context.
+   */
   end(): Set<string | number> {
     const deps = this._contextStack.pop() || new Set();
     this._activeListener = null;
@@ -31,6 +38,10 @@ class DependencyTracker {
     return deps;
   }
 
+  /**
+   * Marks a signal as a dependency of the active listener.
+   * @param key The unique identifier of the signal.
+   */
   track(key: string | number) {
     // Automatic subscription if a listener is active
     if (this._activeListener) {
@@ -46,6 +57,10 @@ class DependencyTracker {
     }
   }
 
+  /**
+   * Notifies all subscribers that a signal has changed.
+   * @param key The identifier of the signal that changed.
+   */
   notify(key: string | number) {
     const callbacks = this._subscribers.get(key);
     if (callbacks) {
@@ -53,7 +68,10 @@ class DependencyTracker {
     }
   }
 
-  // Execute and clear a specific cleanup stack
+  /**
+   * Executes and clears all functions in the provided cleanup stack.
+   * @param stack The stack of cleanup callbacks.
+   */
   cleanupStack(stack: Callback[]) {
     while (stack.length > 0) {
       const fn = stack.pop();
@@ -61,6 +79,9 @@ class DependencyTracker {
     }
   }
 
+  /**
+   * Completely resets the tracker state.
+   */
   reset() {
     this._subscribers.clear();
     this._contextStack = [];

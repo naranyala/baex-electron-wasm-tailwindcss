@@ -1,20 +1,12 @@
-import type { Binding, TemplateResult } from './template';
-import { wasm } from './wasm';
-import { tracker } from './dependency-tracker';
-import { getSignal } from './signals';
-import type { PropertyDeclaration, PropertyValues } from './types';
-import { 
-  resolveAttributeName, 
-  normalizePatches, 
-  deserializeProperty, 
-  serializeProperty 
-} from './utils';
-import { buildDOM, RenderContext } from './renderer';
-import type { Callback } from './dependency-tracker';
- 
- 
- 
+/**
+ * Base class for all BAEX reactive components.
+ * Extends HTMLElement to integrate with the native Web Component API.
+ * Handles synchronization between JavaScript properties and the WASM engine.
+ */
 export class BaexElement extends HTMLElement {
+  /**
+   * Definition of reactive properties for the component.
+   */
   static properties: Record<string, PropertyDeclaration> = {};
  
   private _cid: number = 0;
@@ -32,6 +24,9 @@ export class BaexElement extends HTMLElement {
     this._defineClassProperties();
   }
  
+  /**
+   * Syncs the initial values of properties defined in `static properties` to the WASM engine.
+   */
   private _syncInitialProperties(): void {
     const props = (this.constructor as typeof BaexElement).properties;
     for (const name of Object.keys(props)) {
@@ -70,20 +65,23 @@ export class BaexElement extends HTMLElement {
     }
   }
  
+  /**
+   * Returns the list of attributes that the browser should monitor for changes.
+   */
   static get observedAttributes(): string[] {
     const props = (this as typeof BaexElement).properties;
-    // Check if wasm module is loaded. 
-    // In many cases, observedAttributes is accessed during class definition,
-    // before ensureWasmReady() can complete.
     try {
         return wasm.resolveObservedAttributes(props);
     } catch (e) {
-        // Fallback: return empty array, or derive from props directly if possible.
-        // For now, returning empty array to prevent crashing.
         return [];
     }
   }
  
+  /**
+   * Schedules a re-render of the component. 
+   * Uses queueMicrotask to batch multiple updates into a single render cycle.
+   * @param force If true, ignores fine-grained patching and performs a full render.
+   */
   requestUpdate(force = false): void {
     if (force) {
       this._forceUpdate = true;
@@ -94,21 +92,31 @@ export class BaexElement extends HTMLElement {
     }
   }
  
+  /**
+   * The main render function. Must be implemented by the subclass to return a TemplateResult.
+   * @throws Error if not implemented.
+   */
   protected render(): TemplateResult {
     throw new Error('render() must be implemented by subclass');
   }
  
+  /** Lifecycle hook called when the element is added to the DOM. */
   protected onConnected?(): void;
+  /** Lifecycle hook called when the element is removed from the DOM. */
   protected onDisconnected?(): void;
+  /** Lifecycle hook called after an update has been performed. */
   protected onUpdate?(changed: PropertyValues): void;
   
   private _disposeSubscriptions(): void {
-    // Only unsubscribe from deps that were specifically for this component
     this._subscriptions.forEach(unsubscribe => unsubscribe());
     this._subscriptions.clear();
     this._bindingMap.clear();
   }
   
+  /**
+   * Core update logic. Orchestrates fine-grained patching or full re-rendering
+   * based on the changes reported by the WASM engine.
+   */
   private _performUpdate(): void {
  
     this._pendingUpdate = false;
@@ -120,7 +128,6 @@ export class BaexElement extends HTMLElement {
   
     const patches = normalizePatches(rawPatches);
   
-    // Always track dependencies during render to handle conditional dependencies
     tracker.begin(() => {
       this.requestUpdate();
     }, this._cleanupStack);
@@ -128,18 +135,14 @@ export class BaexElement extends HTMLElement {
     if (currentForce) {
       this._renderInitial();
     } else {
-      // Try to apply fine-grained patches first
       let patched = false;
       for (const patch of patches) {
-        // Find the marker associated with this property
         const marker = this._findMarkerForProperty(patch.propName);
         if (marker) {
           this._applyPatch(marker, patch.value);
           patched = true;
         }
       }
-      
-      // If no targeted patches could be applied, or we have structural changes, fallback to full render
       if (!patched) {
         this._renderInitial();
       }
@@ -147,7 +150,6 @@ export class BaexElement extends HTMLElement {
     
     const newDeps = tracker.end();
     
-    // Unsubscribe from deps no longer used
     for (const [key, unsubscribe] of this._subscriptions.entries()) {
       if (!newDeps.has(key)) {
         unsubscribe();
@@ -155,7 +157,6 @@ export class BaexElement extends HTMLElement {
       }
     }
  
-    // Subscribe to new deps
     newDeps.forEach(key => {
       if (!this._subscriptions.has(key)) {
         const sig = getSignal(key as string);
@@ -181,7 +182,6 @@ export class BaexElement extends HTMLElement {
     }
     return null;
   }
- 
  
   private _renderInitial(): void {
     const result = this.render();
@@ -228,17 +228,8 @@ export class BaexElement extends HTMLElement {
           el.removeAttribute(binding.attrName);
         }
       }
-      // Event bindings are generally static
     }
   }
- 
-  // Deprecated in favor of _buildDOM direct application
-  // private _initializeNodeMap(bindings: Binding[]): void {
-  // }
-  
-  // Deprecated in favor of _buildDOM direct application
-  // private _applyBindings(bindings: Binding[]): void {
-  // }
  
   private _defineClassProperties(): void {
     const ctor = this.constructor as typeof BaexElement;
@@ -286,6 +277,10 @@ export class BaexElement extends HTMLElement {
     this.requestUpdate();
   }
  
+  /**
+   * Schedules a callback to be executed after the next update cycle.
+   * @param cb The callback function.
+   */
   whenUpdate(cb: () => void): void {
     if (!this._pendingUpdate) {
       cb();
@@ -295,6 +290,10 @@ export class BaexElement extends HTMLElement {
   }
 }
  
+/**
+ * Decorator to define a reactive property for a BaexElement.
+ * @param decl Optional property declaration (type, reflection, etc).
+ */
 export function property(decl?: PropertyDeclaration): PropertyDecorator {
   return (target: object, key: string | symbol) => {
     if (!target) return;
@@ -310,6 +309,9 @@ export function property(decl?: PropertyDeclaration): PropertyDecorator {
   };
 }
  
+/**
+ * Shorthand decorator for a reactive state property.
+ */
 export function state(): PropertyDecorator {
   return property({ attribute: false });
 }

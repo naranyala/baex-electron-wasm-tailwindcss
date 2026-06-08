@@ -9,6 +9,9 @@ thread_local! {
     pub static SIGNAL_ID_COUNTER: RefCell<u32> = RefCell::new(0);
 }
 
+/// Returns the unique ID associated with a signal key.
+/// If the key doesn't exist, a new ID is generated and stored.
+#[wasm_bindgen]
 pub fn get_or_create_signal_id(key: String) -> u32 {
     SIGNAL_KEY_MAP.with(|map| {
         let mut map = map.borrow_mut();
@@ -27,6 +30,8 @@ pub fn get_or_create_signal_id(key: String) -> u32 {
     })
 }
 
+/// Initializes a signal in the WASM engine using its ID.
+/// Sets the initial value and ensures a subscriber list exists.
 #[wasm_bindgen]
 pub fn create_signal_by_id(id: u32, initial: JsValue) -> JsValue {
     SIGNAL_VALUES.with(|store| {
@@ -38,6 +43,7 @@ pub fn create_signal_by_id(id: u32, initial: JsValue) -> JsValue {
     initial
 }
 
+/// Retrieves the current value of a signal by its ID.
 #[wasm_bindgen]
 pub fn get_signal_by_id(id: u32) -> JsValue {
     SIGNAL_VALUES.with(|store| {
@@ -45,6 +51,7 @@ pub fn get_signal_by_id(id: u32) -> JsValue {
     })
 }
 
+/// Updates a signal's value and triggers all registered JavaScript callbacks.
 #[wasm_bindgen]
 pub fn set_signal_by_id(id: u32, value: JsValue) {
     SIGNAL_VALUES.with(|store| {
@@ -60,6 +67,7 @@ pub fn set_signal_by_id(id: u32, value: JsValue) {
     });
 }
 
+/// Registers a JavaScript callback to be executed whenever the specified signal changes.
 #[wasm_bindgen]
 pub fn on_signal_change_by_id(id: u32, callback: js_sys::Function) {
     SIGNAL_SUBSCRIBERS.with(|store| {

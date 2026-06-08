@@ -10,6 +10,7 @@
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
+    "allowJs": true,
     "isolatedModules": true,
     "noEmit": true,
 
@@ -18,6 +19,7 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
+    "ignoreDeprecations": "6.0",
     "baseUrl": ".",
     "paths": {
       "@core/*": ["src/core/*"],
@@ -25,6 +27,6 @@
       "@shared/*": ["src/shared/*"]
     }
   },
-  "include": ["src", "electron"],
+  "include": ["src", "electron", "rust-wasm/pkg", "rust-utils/math-utils/pkg", "rust-utils/string-utils/pkg"],
   "exclude": ["node_modules", "dist", "dist-electron", "release", "vitest.config.ts"]
 }
